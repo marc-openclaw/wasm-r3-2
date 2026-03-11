@@ -1,0 +1,13 @@
+[package]
+name = "wasm_parser"
+version = "0.1.0"
+edition = "2021"
+authors = ["WASM R3 Team"]
+description = "A WebAssembly binary parser with editable AST structures"
+license = "MIT"
+
+[dependencies]
+thiserror = "1.0"
+
+[dev-dependencies]
+anyhow = "1.0"

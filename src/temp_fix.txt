@@ -1,0 +1,5 @@
+Quick fixes needed:
+1. parser.rs line ~89: change total_functions() to funcs.len()
+2. parser.rs line ~121: implement replace_instruction or change to remove_instruction
+3. Remove Eq from Instruction derive (f32/f64 don't implement Eq)
+4. Fix Result type in lib.rs
