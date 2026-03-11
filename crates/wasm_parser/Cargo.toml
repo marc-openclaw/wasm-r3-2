@@ -1,0 +1,23 @@
+[package]
+name = "wasm_parser"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A WebAssembly binary parser with editable AST structures"
+
+[dependencies]
+thiserror = { workspace = true }
+wasm-bindgen = { workspace = true, optional = true }
+js-sys = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true, features = ["console"] }
+serde = { workspace = true, optional = true }
+serde-wasm-bindgen = { workspace = true, optional = true }
+
+[features]
+default = []
+wasm = ["wasm-bindgen", "js-sys", "web-sys", "serde", "serde-wasm-bindgen"]
+
+[lib]
+crate-type = ["lib", "cdylib"]

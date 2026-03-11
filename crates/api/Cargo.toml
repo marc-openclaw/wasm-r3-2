@@ -1,0 +1,23 @@
+[package]
+name = "wasm-api"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "REST API for WebAssembly module analysis"
+
+[[bin]]
+name = "wasm-api"
+path = "src/main.rs"
+
+[dependencies]
+wasm_parser = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+base64 = "0.21"

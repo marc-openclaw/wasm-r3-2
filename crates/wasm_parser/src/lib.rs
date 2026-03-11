@@ -28,6 +28,10 @@ pub use instruction::*;
 pub use types::*;
 pub use value::*;
 
+// Re-export commonly used functions
+pub use parser::parse;
+pub use encode::encode_module;
+
 /// Magic number for WebAssembly binary format: \0asm
 pub const WASM_MAGIC: &[u8] = &[0x00, 0x61, 0x73, 0x6d];
 

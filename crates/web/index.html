@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASM Parser Explorer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #16213e;
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #0f3460;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #e94560;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .drop-zone {
+            border: 3px dashed #0f3460;
+            border-radius: 8px;
+            padding: 3rem;
+            text-align: center;
+            background: #16213e;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+        }
+
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: #e94560;
+            background: #1a2a4a;
+        }
+
+        .drop-zone p {
+            color: #888;
+            margin: 1rem 0;
+        }
+
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #d63050;
+        }
+
+        button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #16213e;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #0f3460;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e94560;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .section {
+            background: #16213e;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #0f3460;
+            padding: 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header:hover {
+            background: #1a4a7a;
+        }
+
+        .section-title {
+            font-weight: 600;
+        }
+
+        .section-count {
+            background: #e94560;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .section-content {
+            display: none;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .section-content.active {
+            display: block;
+        }
+
+        .item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #0f3460;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+        }
+
+        .item:last-child {
+            border-bottom: none;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        .item-name {
+            color: #e94560;
+            font-weight: 600;
+        }
+
+        .item-type {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .item-details {
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+
+        .error {
+            background: #5c2828;
+            border: 1px solid #e94560;
+            padding: 1rem;
+            border-radius: 8px;
+            color: #ff9999;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 3px solid #0f3460;
+            border-top: 3px solid #e94560;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .api-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #0f3460;
+        }
+
+        .api-toggle {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .api-toggle button {
+            background: transparent;
+            border: 2px solid #0f3460;
+        }
+
+        .api-toggle button.active {
+            background: #e94560;
+            border-color: #e94560;
+        }
+
+        .code-block {
+            background: #0a0a1a;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            color: #a8d8a8;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        footer a {
+            color: #e94560;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔍 WASM Parser Explorer</h1>
+        <p class="subtitle">Parse and explore WebAssembly modules in your browser</p>
+    </header>
+
+    <main>
+        <div class="drop-zone" id="dropZone">
+            <p>📁 Drag & drop a .wasm file here</p>
+            <p>or</p>
+            <button onclick="document.getElementById('fileInput').click()">Select File</button>
+            <input type="file" id="fileInput" class="file-input" accept=".wasm" />
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Parsing WebAssembly module...</p>
+        </div>
+
+        <div id="results" class="results">
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('imports')">
+                    <span class="section-title">📥 Imports</span>
+                    <span class="section-count" id="importsCount">0</span>
+                </div>
+                <div class="section-content" id="importsContent"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('exports')">
+                    <span class="section-title">📤 Exports</span>
+                    <span class="section-count" id="exportsCount">0</span>
+                </div>
+                <div class="section-content" id="exportsContent"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('functions')">
+                    <span class="section-title">⚙️ Functions</span>
+                    <span class="section-count" id="functionsCount">0</span>
+                </div>
+                <div class="section-content" id="functionsContent"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('raw')">
+                    <span class="section-title">📝 Raw JSON</span>
+                </div>
+                <div class="section-content" id="rawContent"></div>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2>🔗 API Endpoints</h2>
+            <div class="api-toggle">
+                <button class="active" onclick="showEndpoint('parse')">POST /parse</button>
+                <button onclick="showEndpoint('validate')">POST /validate</button>
+            </div>
+
+            <div id="endpoint-parse" class="endpoint-doc">
+                <h3>Parse WASM Module</h3>
+                <p>Upload a WebAssembly binary and get detailed module information.</p>
+                <div class="code-block">
+POST /parse
+Content-Type: application/octet-stream
+
+[binary wasm data]
+
+Response:
+{
+  "success": true,
+  "data": {
+    "info": { "functions": 10, "imports": 2, ... },
+    "imports": [...],
+    "exports": [...],
+    "functions": [...]
+  }
+}</div>
+            </div>
+
+            <div id="endpoint-validate" class="endpoint-doc" style="display: none;">
+                <h3>Validate WASM Module</h3>
+                <p>Check if a WebAssembly binary is valid.</p>
+                <div class="code-block">
+POST /validate
+Content-Type: application/octet-stream
+
+[binary wasm data]
+
+Response:
+{
+  "success": true,
+  "data": true
+}</div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Powered by <a href="https://github.com/marc-openclaw/wasm-r3-2">wasm-r3-2</a> • Built with Rust 🦀</p>
+    </footer>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const errorDiv = document.getElementById('error');
+        const loadingDiv = document.getElementById('loading');
+        const resultsDiv = document.getElementById('results');
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        async function processFile(file) {
+            if (!file.name.endsWith('.wasm')) {
+                showError('Please select a .wasm file');
+                return;
+            }
+
+            hideError();
+            loadingDiv.style.display = 'block';
+            resultsDiv.classList.remove('active');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+
+                // Try to use the REST API first
+                const response = await fetch('http://localhost:3000/parse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    body: bytes
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        displayResults(result.data);
+                    } else {
+                        showError(result.error || 'Failed to parse WASM');
+                    }
+                } else {
+                    showError(`API Error: ${response.status}`);
+                }
+            } catch (err) {
+                showError(`Error: ${err.message}. Make sure the API server is running on localhost:3000`);
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        function displayResults(data) {
+            resultsDiv.classList.add('active');
+
+            // Stats
+            const statsGrid = document.getElementById('statsGrid');
+            const info = data.info;
+            statsGrid.innerHTML = `
+                <div class="stat-card"><div class="stat-value">${info.functions}</div><div class="stat-label">Functions</div></div>
+                <div class="stat-card"><div class="stat-value">${info.types}</div><div class="stat-label">Types</div></div>
+                <div class="stat-card"><div class="stat-value">${info.imports}</div><div class="stat-label">Imports</div></div>
+                <div class="stat-card"><div class="stat-value">${info.exports}</div><div class="stat-label">Exports</div></div>
+                <div class="stat-card"><div class="stat-value">${info.memories}</div><div class="stat-label">Memories</div></div>
+                <div class="stat-card"><div class="stat-value">${info.tables}</div><div class="stat-label">Tables</div></div>
+                <div class="stat-card"><div class="stat-value">${info.globals}</div><div class="stat-label">Globals</div></div>
+                <div class="stat-card"><div class="stat-value">${info.data_segments}</div><div class="stat-label">Data Segments</div></div>
+            `;
+
+            // Imports
+            document.getElementById('importsCount').textContent = data.imports.length;
+            document.getElementById('importsContent').innerHTML = data.imports.map((imp, i) => `
+                <div class="item">
+                    <div class="item-header">
+                        <span class="item-name">${imp.module}.${imp.name}</span>
+                        <span class="item-type">${imp.kind}</span>
+                    </div>
+                    <div class="item-details">Import #${i}</div>
+                </div>
+            `).join('') || '<div class="item">No imports</div>';
+
+            // Exports
+            document.getElementById('exportsCount').textContent = data.exports.length;
+            document.getElementById('exportsContent').innerHTML = data.exports.map((exp, i) => `
+                <div class="item">
+                    <div class="item-header">
+                        <span class="item-name">${exp.name}</span>
+                        <span class="item-type">${exp.kind}</span>
+                    </div>
+                    <div class="item-details">Index: ${exp.index}</div>
+                </div>
+            `).join('') || '<div class="item">No exports</div>';
+
+            // Functions
+            document.getElementById('functionsCount').textContent = data.functions.length;
+            document.getElementById('functionsContent').innerHTML = data.functions.map(func => `
+                <div class="item">
+                    <div class="item-header">
+                        <span class="item-name">Function ${func.index}</span>
+                        <span class="item-type">Type ${func.type_index}</span>
+                    </div>
+                    <div class="item-details">
+                        Params: [${func.params.join(', ')}] → Results: [${func.results.join(', ')}]<br>
+                        Locals: ${func.locals} | Instructions: ${func.instructions}
+                    </div>
+                </div>
+            `).join('') || '<div class="item">No functions</div>';
+
+            // Raw JSON
+            document.getElementById('rawContent').innerHTML = `<div class="code-block">${JSON.stringify(data, null, 2)}</div>`;
+        }
+
+        function toggleSection(id) {
+            const content = document.getElementById(id + 'Content');
+            content.classList.toggle('active');
+        }
+
+        function showEndpoint(name) {
+            document.querySelectorAll('.endpoint-doc').forEach(el => el.style.display = 'none');
+            document.getElementById('endpoint-' + name).style.display = 'block';
+            document.querySelectorAll('.api-toggle button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function showError(msg) {
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            errorDiv.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

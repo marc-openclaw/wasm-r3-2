@@ -1,0 +1,20 @@
+[package]
+name = "wasm-web"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Web server for WASM parser web app"
+publish = false
+
+[[bin]]
+name = "wasm-web"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+tower-http = { workspace = true, features = ["fs", "cors"] }
+serde = { workspace = true }
+serde_json = { workspace = true }

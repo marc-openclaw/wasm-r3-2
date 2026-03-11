@@ -1,30 +1,26 @@
-[package]
-name = "wasm_parser"
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
 authors = ["WASM R3 Team"]
-description = "A WebAssembly binary parser with editable AST structures"
 license = "MIT"
 repository = "https://github.com/marc-openclaw/wasm-r3-2"
 
-[dependencies]
+[workspace.dependencies]
+wasm_parser = { path = "crates/wasm_parser" }
 thiserror = "1.0"
-wasm-bindgen = { version = "0.2", optional = true }
-js-sys = { version = "0.3", optional = true }
-web-sys = { version = "0.3", optional = true, features = ["console"] }
-serde = { version = "1.0", features = ["derive"], optional = true }
-serde-wasm-bindgen = { version = "0.6", optional = true }
-
-[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 anyhow = "1.0"
-
-[features]
-default = []
-wasm = ["wasm-bindgen", "js-sys", "web-sys", "serde", "serde-wasm-bindgen"]
-
-[lib]
-crate-type = ["lib", "cdylib"]
-
-[package.metadata.wasm]
-# Enable wasm-bindgen weak references for smaller bundle size
-weak-refs = true
+tokio = { version = "1.35", features = ["full"] }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+clap = { version = "4.4", features = ["derive"] }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = "0.3"
+serde-wasm-bindgen = "0.6"

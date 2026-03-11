@@ -1,0 +1,29 @@
+# Rust
+target/
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+*.wasm
+*.wat
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dll
+*.exe
+
+# wasm-pack
+pkg/
+wasm-pack.log

@@ -128,6 +128,7 @@ mod tests {
     use super::*;
     use crate::ast::Module;
     use crate::types::{FuncType, ValueType};
+    use crate::encode_module;
 
     #[test]
     fn test_parser_api() {
@@ -167,7 +168,7 @@ mod tests {
         module.code.push(body);
 
         // Encode
-        let encoded = encode(&module).unwrap();
+        let encoded = crate::encode_module(&module).unwrap();
 
         // Parse back
         let module2 = parse(&encoded).unwrap();

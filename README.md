@@ -3,8 +3,35 @@
 [![Crates.io](https://img.shields.io/crates/v/wasm_parser)](https://crates.io/crates/wasm_parser)
 [![Docs.rs](https://docs.rs/wasm_parser/badge.svg)](https://docs.rs/wasm_parser)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://marc-openclaw.github.io/wasm-r3-2/)
 
-A Rust crate for parsing, modifying, and encoding WebAssembly binary modules with an editable AST structure.
+A Rust workspace for parsing, modifying, and encoding WebAssembly binary modules with an editable AST structure.
+
+## Workspace Structure
+
+This is a Cargo workspace with multiple crates:
+
+| Crate | Description | Location |
+|-------|-------------|----------|
+| `wasm_parser` | Core library for parsing WASM | `crates/wasm_parser/` |
+| `wasm-cli` | Command-line tool for WASM analysis | `crates/cli/` |
+| `wasm-api` | REST API server | `crates/api/` |
+| `wasm-web` | Browser-based web app | `crates/web/` |
+
+## Quick Start
+
+```bash
+# Build everything
+cargo build --release
+
+# Run CLI
+cargo run -p wasm-cli -- parse sample.wasm
+
+# Run API server
+cargo run -p wasm-api
+
+# Open web app (see Testing Tools section below)
+```
 
 ## Features
 
@@ -14,6 +41,64 @@ A Rust crate for parsing, modifying, and encoding WebAssembly binary modules wit
 - **WASM Support** - Compile this crate to WebAssembly for use in browsers
 - **Zero-copy** parsing where possible
 - Full support for WebAssembly MVP and most proposals
+
+## Testing Tools
+
+This workspace includes several tools for testing and exploring WebAssembly modules:
+
+### 🔧 CLI Tool
+
+A command-line interface for parsing and analyzing WASM files:
+
+```bash
+cd crates/cli
+cargo run -- parse my_module.wasm
+cargo run -- parse my_module.wasm --json
+cargo run -- stats my_module.wasm
+cargo run -- imports my_module.wasm
+cargo run -- exports my_module.wasm
+cargo run -- functions my_module.wasm --bodies
+cargo run -- validate my_module.wasm
+cargo run -- roundtrip input.wasm output.wasm
+```
+
+### 🌐 REST API
+
+An HTTP server providing WASM parsing endpoints:
+
+```bash
+cd crates/api
+cargo run
+# Server starts on http://localhost:3000
+```
+
+**Endpoints:**
+- `POST /parse` - Upload WASM binary, get module info
+- `POST /validate` - Validate WASM binary
+- `GET /health` - Health check
+
+Example:
+```bash
+curl -X POST http://localhost:3000/parse \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @my_module.wasm
+```
+
+### 🌍 Web App
+
+A browser-based UI for exploring WASM modules:
+
+The web app is deployed to GitHub Pages: https://marc-openclaw.github.io/wasm-r3-2/
+
+To run locally:
+```bash
+cd crates/web
+# Serve index.html with any static file server
+python3 -m http.server 8080
+# Then open http://localhost:8080
+```
+
+Note: The web app connects to the REST API server running on localhost:3000.
 
 ## Installation
 
