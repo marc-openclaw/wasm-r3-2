@@ -2,16 +2,27 @@
 
 use crate::error::{Result, WasmError};
 
+#[cfg(feature = "wasm")]
+use serde::{Deserialize, Serialize};
+
 /// WebAssembly value types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 #[repr(u8)]
 pub enum ValueType {
+    /// 32-bit integer
     I32 = 0x7f,
+    /// 64-bit integer
     I64 = 0x7e,
+    /// 32-bit float
     F32 = 0x7d,
+    /// 64-bit float (double)
     F64 = 0x7c,
+    /// 128-bit vector (SIMD)
     V128 = 0x7b,
+    /// Function reference
     FuncRef = 0x70,
+    /// External reference
     ExternRef = 0x6f,
 }
 
@@ -38,6 +49,7 @@ impl ValueType {
 
 /// WebAssembly block type (used in control flow instructions)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub enum BlockType {
     /// Empty block (void)
     Empty,
@@ -84,12 +96,16 @@ impl BlockType {
 
 /// Function type (parameters and results)
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct FuncType {
+    /// Parameter types
     pub params: Vec<ValueType>,
+    /// Result types
     pub results: Vec<ValueType>,
 }
 
 impl FuncType {
+    /// Create a new function type
     pub fn new(params: Vec<ValueType>, results: Vec<ValueType>) -> Self {
         Self { params, results }
     }
@@ -97,28 +113,39 @@ impl FuncType {
 
 /// Memory type with limits
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct MemType {
+    /// Memory limits
     pub limits: Limits,
 }
 
 /// Table type with element type and limits
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct TableType {
+    /// Table limits
     pub limits: Limits,
+    /// Element type (usually funcref)
     pub elem_type: ValueType,
 }
 
 /// Global type with value type and mutability
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct GlobalType {
+    /// Value type of the global
     pub value_type: ValueType,
+    /// Whether the global is mutable
     pub mutable: bool,
 }
 
 /// Limits (min and optional max)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct Limits {
+    /// Minimum size
     pub min: u32,
+    /// Maximum size (optional)
     pub max: Option<u32>,
     /// Memory/table has a 64-bit index (memory64 proposal)
     pub memory64: bool,
@@ -127,6 +154,7 @@ pub struct Limits {
 }
 
 impl Limits {
+    /// Create new limits with optional maximum
     pub fn new(min: u32, max: Option<u32>) -> Self {
         Self {
             min,
@@ -136,6 +164,7 @@ impl Limits {
         }
     }
 
+    /// Create new limits for memory64
     pub fn new64(min: u32, max: Option<u32>) -> Self {
         Self {
             min,
@@ -161,15 +190,21 @@ impl Limits {
 
 /// External kind (for imports and exports)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 #[repr(u8)]
 pub enum ExternalKind {
+    /// Function
     Func = 0x00,
+    /// Table
     Table = 0x01,
+    /// Memory
     Mem = 0x02,
+    /// Global
     Global = 0x03,
 }
 
 impl ExternalKind {
+    /// Convert from byte
     pub fn from_byte(byte: u8) -> Result<Self> {
         match byte {
             0x00 => Ok(ExternalKind::Func),
@@ -183,6 +218,7 @@ impl ExternalKind {
 
 /// Import description (what kind of import)
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub enum ImportDesc {
     /// Function with type index
     Func(u32),

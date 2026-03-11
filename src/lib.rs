@@ -13,6 +13,12 @@ pub mod parser;
 pub mod types;
 pub mod value;
 
+#[cfg(feature = "wasm")]
+pub mod wasm_bindings;
+
+#[cfg(feature = "wasm")]
+pub use wasm_bindings::WasmModule;
+
 pub use ast::*;
 pub use decode::*;
 pub use encode::*;
