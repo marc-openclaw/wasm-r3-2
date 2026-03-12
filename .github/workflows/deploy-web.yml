@@ -34,13 +34,12 @@ jobs:
         run: |
           cd crates/wasm_parser
           wasm-pack build --target web --features wasm
-          mkdir -p ../../docs
-          cp pkg/* ../../docs/
+          cp pkg/* ../../
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs
+          path: ./
 
   deploy:
     environment:
