@@ -62,6 +62,11 @@ export class WasmModule {
 }
 
 /**
+ * Initialize logger from JavaScript
+ */
+export function initLogger(verbose: boolean): void;
+
+/**
  * Initialize WASM module (call once from JS)
  */
 export function start(): void;
@@ -70,6 +75,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly initLogger: (a: number) => void;
     readonly __wbg_wasmmodule_free: (a: number, b: number) => void;
     readonly start: () => void;
     readonly wasmmodule_dataCount: (a: number) => number;

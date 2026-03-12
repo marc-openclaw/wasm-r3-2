@@ -151,6 +151,14 @@ export class WasmModule {
 if (Symbol.dispose) WasmModule.prototype[Symbol.dispose] = WasmModule.prototype.free;
 
 /**
+ * Initialize logger from JavaScript
+ * @param {boolean} verbose
+ */
+export function initLogger(verbose) {
+    wasm.initLogger(verbose);
+}
+
+/**
  * Initialize WASM module (call once from JS)
  */
 export function start() {
@@ -180,6 +188,14 @@ function __wbg_get_imports() {
         },
         __wbg_set_8c0b3ffcf05d61c2: function(arg0, arg1, arg2) {
             arg0.set(getArrayU8FromWasm0(arg1, arg2));
+        },
+        __wbg_warn_69424c2d92a2fa73: function(arg0) {
+            console.warn(arg0);
+        },
+        __wbindgen_cast_0000000000000001: function(arg0, arg1) {
+            // Cast intrinsic for `Ref(String) -> Externref`.
+            const ret = getStringFromWasm0(arg0, arg1);
+            return ret;
         },
         __wbindgen_init_externref_table: function() {
             const table = wasm.__wbindgen_externrefs;

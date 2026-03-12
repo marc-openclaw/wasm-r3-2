@@ -10,6 +10,7 @@ pub mod encode;
 pub mod error;
 pub mod instruction;
 pub mod leb128;
+pub mod logger;
 pub mod parser;
 pub mod types;
 pub mod value;

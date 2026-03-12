@@ -5,6 +5,7 @@ use crate::decode_instructions::{decode_instructions, decode_instructions_bounde
 use crate::error::{Result, WasmError};
 use crate::instruction::Instruction;
 use crate::leb128;
+use crate::logger;
 use crate::types::*;
 use crate::{SectionId, WASM_MAGIC, WASM_VERSION};
 
@@ -292,7 +293,7 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
     for i in 0..count {
         
         if decoder.pos >= section_end {
-            eprintln!("WARNING: Reached section end early at element {}/{}", i, count);
+            logger::warn_msg(&format!("Reached section end early at element {}/{}", i, count));
             break;
         }
         
