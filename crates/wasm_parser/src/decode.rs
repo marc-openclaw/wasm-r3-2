@@ -248,8 +248,44 @@ fn decode_import_section(data: &[u8]) -> Result<Vec<Import>> {
     for _ in 0..count {
         let module = decoder.read_name()?;
         let name = decoder.read_name()?;
-        let kind = ExternalKind::from_byte(decoder.read_u8()?)?;
-        let idx = decoder.read_u32_leb128()?;
+        let kind_byte = decoder.read_u8()?;
+        let kind = ExternalKind::from_byte(kind_byte)?;
+        
+        // For function imports, read the type index
+        // For other imports, we need to read the type descriptor but we just
+        // store a placeholder index for now since the actual type is added
+        // to the respective section
+        let idx = match kind {
+            ExternalKind::Func => {
+                // Function import: just a type index
+                decoder.read_u32_leb128()?
+            }
+            ExternalKind::Table => {
+                // Table import: elemtype (1 byte) + limits
+                let _elem_type = decoder.read_u8()?; // funcref (0x70)
+                let _limits = decode_limits(&mut decoder)?;
+                // Table imports add to tables section, idx would be tables.len()
+                0 // Placeholder - would need to track actual table index
+            }
+            ExternalKind::Mem => {
+                // Memory import: limits
+                let _limits = decode_limits(&mut decoder)?;
+                // Memory imports add to memories section, idx would be memories.len()
+                0 // Placeholder - would need to track actual memory index
+            }
+            ExternalKind::Global => {
+                // Global import: valuetype + mutability
+                let _value_type = decoder.read_u8()?;
+                let _mutable = decoder.read_u8()?;
+                // Global imports add to globals section, idx would be globals.len()
+                0 // Placeholder - would need to track actual global index
+            }
+            ExternalKind::Unknown(_) => {
+                // Unknown kind - try to read a u32 as fallback
+                decoder.read_u32_leb128()?
+            }
+        };
+        
         imports.push(Import { module, name, kind, idx });
     }
 
@@ -456,6 +492,7 @@ fn decode_code_section(data: &[u8]) -> Result<Vec<FunctionBody>> {
     for _ in 0..count {
         let body_size = decoder.read_u32_leb128()? as usize;
         let body_start = decoder.pos;
+        let body_end = body_start + body_size;
 
         let local_count = decoder.read_u32_leb128()? as usize;
         let mut locals = Vec::with_capacity(local_count);
@@ -466,10 +503,14 @@ fn decode_code_section(data: &[u8]) -> Result<Vec<FunctionBody>> {
             locals.push(Local { count, ty });
         }
 
-        let instructions = decode_instructions(&mut decoder)?;
+        // Decode instructions within the function body boundary
+        let instructions = decode_instructions_bounded(&mut decoder, body_end)?;
 
-        if decoder.pos - body_start != body_size {
-            return Err(WasmError::ValidationError("Code size mismatch".to_string()));
+        if decoder.pos != body_end {
+            return Err(WasmError::ValidationError(format!(
+                "Code size mismatch: expected end at {}, but at {}",
+                body_end, decoder.pos
+            )));
         }
 
         bodies.push(FunctionBody { locals, instructions });
