@@ -451,7 +451,49 @@
         let consoleLines = [];
         let verboseEnabled = false;
 
+        // Intercept browser console to capture WASM logs
+        const originalConsole = {
+            log: console.log,
+            warn: console.warn,
+            error: console.error
+        };
+
+        function interceptConsole() {
+            console.log = function(...args) {
+                originalConsole.log.apply(console, args);
+                const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                if (msg.includes('[WASM]') || msg.includes('[WASM:DEBUG]')) {
+                    const level = msg.includes('[WASM:DEBUG]') ? 'debug' : 'info';
+                    logToConsole(msg, level);
+                }
+            };
+            
+            console.warn = function(...args) {
+                originalConsole.warn.apply(console, args);
+                const msg = args.map(a => String(a)).join(' ');
+                if (msg.includes('[WASM]')) {
+                    logToConsole(msg, 'warn');
+                }
+            };
+            
+            console.error = function(...args) {
+                originalConsole.error.apply(console, args);
+                const msg = args.map(a => String(a)).join(' ');
+                if (msg.includes('[WASM]')) {
+                    logToConsole(msg, 'error');
+                }
+            };
+        }
+
+        // Enable console interception
+        interceptConsole();
+
         function logToConsole(message, level = 'info') {
+            const consoleDiv = document.getElementById('console');
+            const consoleOutput = document.getElementById('consoleOutput');
+            
+            if (!consoleDiv || !consoleOutput) return;
+            
             if (!verboseEnabled && level === 'debug') {
                 return;
             }
@@ -460,15 +502,20 @@
             
             const line = document.createElement('div');
             line.className = `console-line ${level}`;
-            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            // Remove [WASM] prefix for cleaner display
+            const cleanMsg = message.replace(/\[WASM(:DEBUG)?\]\s*/, '');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${cleanMsg}`;
             consoleOutput.appendChild(line);
             consoleOutput.scrollTop = consoleOutput.scrollHeight;
             
-            consoleLines.push({ message, level, time: new Date() });
+            consoleLines.push({ message: cleanMsg, level, time: new Date() });
         }
 
         function clearConsole() {
-            consoleOutput.innerHTML = '';
+            const consoleOutput = document.getElementById('consoleOutput');
+            if (consoleOutput) {
+                consoleOutput.innerHTML = '';
+            }
             consoleLines = [];
         }
 
