@@ -296,7 +296,7 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
             break;
         }
         
-        let flags = decoder.read_u32_leb128()?;
+        let flags = decoder.read_u8()? as u32;
         
         // Determine mode based on flags
         let mode = if flags == 0 {

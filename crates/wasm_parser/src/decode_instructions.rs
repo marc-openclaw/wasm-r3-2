@@ -292,8 +292,6 @@ fn decode_instruction_with_opcode(decoder: &mut Decoder, opcode: u8) -> Result<I
         0xd2 => Ok(Instruction::RefFunc { func_idx: decoder.read_u32_leb128()? }),
 
         _ => {
-            eprintln!("DEBUG: Invalid opcode 0x{:02x} at pos {}/{}", 
-                opcode, decoder.pos, decoder.bytes.len());
             Err(WasmError::InvalidOpcode(opcode))
         }
     }
@@ -371,7 +369,6 @@ pub fn decode_instructions_until_end_bounded(
     loop {
         iteration += 1;
         if iteration > 1000 {
-            eprintln!("DEBUG: Too many iterations in decode_instructions_until_end_bounded");
             return Err(WasmError::UnexpectedEof);
         }
 
