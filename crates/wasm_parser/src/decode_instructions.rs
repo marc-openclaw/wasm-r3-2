@@ -5,30 +5,39 @@ use crate::error::{Result, WasmError};
 use crate::instruction::{Instruction, MemArg};
 use crate::types::{BlockType, ValueType};
 
-/// Decode a single instruction from the decoder
+/// Decode a single instruction from the decoder with optional end boundary
 pub fn decode_single_instruction(decoder: &mut Decoder) -> Result<Instruction> {
+    decode_single_instruction_with_end(decoder, None)
+}
+
+/// Decode a single instruction with an end boundary for nested blocks
+pub fn decode_single_instruction_with_end(decoder: &mut Decoder, end: Option<usize>) -> Result<Instruction> {
     let opcode = decoder.read_u8()?;
-    decode_instruction_with_opcode(decoder, opcode)
+    decode_instruction_with_opcode_and_end(decoder, opcode, end)
 }
 
 fn decode_instruction_with_opcode(decoder: &mut Decoder, opcode: u8) -> Result<Instruction> {
+    decode_instruction_with_opcode_and_end(decoder, opcode, None)
+}
+
+fn decode_instruction_with_opcode_and_end(decoder: &mut Decoder, opcode: u8, end: Option<usize>) -> Result<Instruction> {
     match opcode {
         // Control instructions
         0x00 => Ok(Instruction::Unreachable),
         0x01 => Ok(Instruction::Nop),
         0x02 => {
             let block_type = BlockType::from_i64(decoder.read_i32_leb128()? as i64)?;
-            let body = decode_instructions_until_end(decoder)?;
+            let body = decode_instructions_until_end_bounded(decoder, end)?;
             Ok(Instruction::Block { block_type, body })
         }
         0x03 => {
             let block_type = BlockType::from_i64(decoder.read_i32_leb128()? as i64)?;
-            let body = decode_instructions_until_end(decoder)?;
+            let body = decode_instructions_until_end_bounded(decoder, end)?;
             Ok(Instruction::Loop { block_type, body })
         }
         0x04 => {
             let block_type = BlockType::from_i64(decoder.read_i32_leb128()? as i64)?;
-            let (then_branch, else_branch) = decode_if_branches(decoder)?;
+            let (then_branch, else_branch) = decode_if_branches_with_end(decoder, end)?;
             Ok(Instruction::If { block_type, then_branch, else_branch })
         }
         0x05 => Ok(Instruction::Else),
@@ -253,20 +262,18 @@ fn decode_instruction_with_opcode(decoder: &mut Decoder, opcode: u8) -> Result<I
         0xbe => Ok(Instruction::F32ReinterpretI32),
         0xbf => Ok(Instruction::F64ReinterpretI64),
 
-        // Sign extension opcodes
+        // Sign extension opcodes (0xc0-0xc4)
         0xc0 => Ok(Instruction::I32Extend8S),
         0xc1 => Ok(Instruction::I32Extend16S),
         0xc2 => Ok(Instruction::I64Extend8S),
         0xc3 => Ok(Instruction::I64Extend16S),
         0xc4 => Ok(Instruction::I64Extend32S),
 
-        // Reserved opcodes (0xc5-0xcf) - skip/ignore
-        0xc5 | 0xc6 | 0xc7 | 0xc8 | 0xc9 | 0xca | 0xcb | 0xcc | 0xcd | 0xce | 0xcf => Ok(Instruction::Nop),
-
-        // Bulk memory operations (0xfc prefix)
+        // Nontrapping float-to-int conversions (0xfc prefix)
         0xfc => {
             let sub_opcode = decoder.read_u8()?;
             match sub_opcode {
+                // Bulk memory operations
                 0x08 => {
                     let data_idx = decoder.read_u32_leb128()?;
                     decoder.read_u8()?; // reserved
@@ -282,6 +289,21 @@ fn decode_instruction_with_opcode(decoder: &mut Decoder, opcode: u8) -> Result<I
                     decoder.read_u8()?; // reserved
                     Ok(Instruction::MemoryFill { mem_idx: 0 })
                 }
+                // Nontrapping conversions (0xfc 0x00-0x07)
+                0x00 => Ok(Instruction::I32TruncSatF32S),
+                0x01 => Ok(Instruction::I32TruncSatF32U),
+                0x02 => Ok(Instruction::I32TruncSatF64S),
+                0x03 => Ok(Instruction::I32TruncSatF64U),
+                0x04 => Ok(Instruction::I64TruncSatF32S),
+                0x05 => Ok(Instruction::I64TruncSatF32U),
+                0x06 => Ok(Instruction::I64TruncSatF64S),
+                0x07 => Ok(Instruction::I64TruncSatF64U),
+                // Sign extension (0xfc 0xc0-0xc4)
+                0xc0 => Ok(Instruction::I32Extend8S),
+                0xc1 => Ok(Instruction::I32Extend16S),
+                0xc2 => Ok(Instruction::I64Extend8S),
+                0xc3 => Ok(Instruction::I64Extend16S),
+                0xc4 => Ok(Instruction::I64Extend32S),
                 _ => Err(WasmError::InvalidOpcode(0xfc)),
             }
         }
@@ -303,13 +325,20 @@ pub fn decode_mem_arg(decoder: &mut Decoder) -> Result<MemArg> {
     Ok(MemArg { align, offset })
 }
 
-fn decode_if_branches(decoder: &mut Decoder) -> Result<(Vec<Instruction>, Vec<Instruction>)> {
+fn decode_if_branches_with_end(decoder: &mut Decoder, end: Option<usize>) -> Result<(Vec<Instruction>, Vec<Instruction>)> {
     let mut then_branch = Vec::new();
     let mut else_branch = Vec::new();
     let mut depth = 0;
     let mut in_else = false;
 
     loop {
+        // Check if we've hit the boundary
+        if let Some(end_pos) = end {
+            if decoder.pos >= end_pos {
+                return Err(WasmError::UnexpectedEof);
+            }
+        }
+
         match decoder.peek() {
             Some(0x0b) if depth == 0 => {
                 decoder.read_u8()?; // consume end
@@ -321,7 +350,7 @@ fn decode_if_branches(decoder: &mut Decoder) -> Result<(Vec<Instruction>, Vec<In
             }
             Some(0x02) | Some(0x03) | Some(0x04) => {
                 depth += 1;
-                let instr = decode_single_instruction(decoder)?;
+                let instr = decode_single_instruction_with_end(decoder, end)?;
                 if in_else {
                     else_branch.push(instr);
                 } else {
@@ -330,7 +359,7 @@ fn decode_if_branches(decoder: &mut Decoder) -> Result<(Vec<Instruction>, Vec<In
             }
             Some(0x0b) => {
                 depth -= 1;
-                let instr = decode_single_instruction(decoder)?;
+                let instr = decode_single_instruction_with_end(decoder, end)?;
                 if in_else {
                     else_branch.push(instr);
                 } else {
@@ -338,7 +367,7 @@ fn decode_if_branches(decoder: &mut Decoder) -> Result<(Vec<Instruction>, Vec<In
                 }
             }
             Some(_) => {
-                let instr = decode_single_instruction(decoder)?;
+                let instr = decode_single_instruction_with_end(decoder, end)?;
                 if in_else {
                     else_branch.push(instr);
                 } else {
@@ -401,12 +430,16 @@ pub fn decode_instructions_until_end_bounded(
                 break;
             }
             Some(0x02) | Some(0x03) | Some(0x04) => {
+                let block_start = decoder.pos;
                 depth += 1;
-                instructions.push(decode_single_instruction(decoder)?);
+                eprintln!("DEBUG: Block instruction at pos {}, depth now {}", block_start, depth);
+                let instr = decode_single_instruction_with_end(decoder, end_pos)?;
+                eprintln!("DEBUG: Block decoded, now at pos {} (advanced {} bytes)", decoder.pos, decoder.pos - block_start);
+                instructions.push(instr);
             }
             Some(0x0b) => {
                 depth -= 1;
-                instructions.push(decode_single_instruction(decoder)?);
+                instructions.push(decode_single_instruction_with_end(decoder, end_pos)?);
             }
             Some(0x05) if depth == 0 => {
                 // else at depth 0 - stop here, don't consume
@@ -414,7 +447,7 @@ pub fn decode_instructions_until_end_bounded(
                 break;
             }
             Some(_) => {
-                instructions.push(decode_single_instruction(decoder)?);
+                instructions.push(decode_single_instruction_with_end(decoder, end_pos)?);
             }
             None => return Err(WasmError::UnexpectedEof),
         }
