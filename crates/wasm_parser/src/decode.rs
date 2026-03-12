@@ -1,7 +1,7 @@
 //! WebAssembly binary decoder
 
 use crate::ast::*;
-use crate::decode_instructions::{decode_instructions, decode_instructions_bounded, decode_instructions_until_end};
+use crate::decode_instructions::{decode_instructions, decode_instructions_bounded, decode_instructions_until_end, decode_single_instruction};
 use crate::error::{Result, WasmError};
 use crate::instruction::Instruction;
 use crate::leb128;
@@ -489,30 +489,48 @@ fn decode_code_section(data: &[u8]) -> Result<Vec<FunctionBody>> {
     let count = decoder.read_u32_leb128()? as usize;
     let mut bodies = Vec::with_capacity(count);
 
-    for _ in 0..count {
+    for i in 0..count {
         let body_size = decoder.read_u32_leb128()? as usize;
         let body_start = decoder.pos;
         let body_end = body_start + body_size;
+        
+        logger::info(&format!("Function {}: body size {} bytes, from {} to {}", i, body_size, body_start, body_end));
 
         let local_count = decoder.read_u32_leb128()? as usize;
         let mut locals = Vec::with_capacity(local_count);
+        
+        logger::info(&format!("Function {}: {} locals", i, local_count));
 
-        for _ in 0..local_count {
+        for j in 0..local_count {
             let count = decoder.read_u32_leb128()?;
             let ty = ValueType::from_byte(decoder.read_u8()?)?;
             locals.push(Local { count, ty });
         }
 
-        // Decode instructions within the function body boundary
-        let instructions = decode_instructions_bounded(&mut decoder, body_end)?;
+        // Decode ALL instructions until body_end (not just until 'end')
+        let mut instructions = Vec::new();
+        while decoder.pos < body_end {
+            let instr_start = decoder.pos;
+            match decode_single_instruction(&mut decoder) {
+                Ok(instr) => {
+                    logger::info(&format!("Function {}: decoded instruction {:?} at position {} (size {})", i, instr, instr_start, decoder.pos - instr_start));
+                    instructions.push(instr);
+                }
+                Err(e) => {
+                    logger::error(&format!("Function {}: failed to decode instruction at position {}: {:?}", i, decoder.pos, e));
+                    return Err(e);
+                }
+            }
+        }
 
         if decoder.pos != body_end {
             return Err(WasmError::ValidationError(format!(
-                "Code size mismatch: expected end at {}, but at {}",
-                body_end, decoder.pos
+                "Code size mismatch in function {}: expected end at {}, but at {}",
+                i, body_end, decoder.pos
             )));
         }
 
+        logger::info(&format!("Function {}: complete with {} instructions", i, instructions.len()));
         bodies.push(FunctionBody { locals, instructions });
     }
 

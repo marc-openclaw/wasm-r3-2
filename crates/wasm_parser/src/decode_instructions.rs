@@ -372,10 +372,19 @@ pub fn decode_instructions_until_end_bounded(
             return Err(WasmError::UnexpectedEof);
         }
 
-        // Check if we've reached the boundary
+        // Check if we've reached the boundary BEFORE peeking
         if let Some(end) = end_pos {
             if decoder.pos >= end {
-                eprintln!("DEBUG: decode_instructions_until_end_bounded hit boundary at pos {}/end {}", decoder.pos, end);
+                eprintln!("DEBUG: At boundary pos {} >= end {}, depth={}, checking for end instruction", decoder.pos, end, depth);
+                // At boundary - check if we're at an end instruction at depth 0
+                let byte = decoder.peek();
+                eprintln!("DEBUG: Byte at boundary: {:?}", byte);
+                if byte == Some(0x0b) && depth == 0 {
+                    decoder.read_u8()?; // consume end
+                    eprintln!("DEBUG: Found end at boundary pos {}", decoder.pos);
+                    break;
+                }
+                eprintln!("DEBUG: decode_instructions_until_end_bounded hit boundary at pos {}/end {} with byte {:?} depth {}", decoder.pos, end, byte, depth);
                 // At boundary without finding end - this is an error
                 return Err(WasmError::UnexpectedEof);
             }
