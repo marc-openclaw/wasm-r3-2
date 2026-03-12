@@ -286,13 +286,10 @@ fn decode_start_section(data: &[u8]) -> Result<u32> {
 fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
     let mut decoder = Decoder::new(data);
     let section_end = data.len();
-    eprintln!("DEBUG: decode_element_section section_end={}", section_end);
     let count = decoder.read_u32_leb128()? as usize;
-    eprintln!("DEBUG: element count={}", count);
     let mut elements = Vec::with_capacity(count);
 
     for i in 0..count {
-        eprintln!("DEBUG: element {} at pos {}/{}", i, decoder.pos, section_end);
         
         if decoder.pos >= section_end {
             eprintln!("WARNING: Reached section end early at element {}/{}", i, count);
@@ -300,7 +297,6 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
         }
         
         let flags = decoder.read_u32_leb128()?;
-        eprintln!("DEBUG: flags={} at pos {}", flags, decoder.pos);
         
         // Determine mode based on flags
         let mode = if flags == 0 {

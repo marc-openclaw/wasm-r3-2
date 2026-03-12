@@ -260,6 +260,9 @@ fn decode_instruction_with_opcode(decoder: &mut Decoder, opcode: u8) -> Result<I
         0xc3 => Ok(Instruction::I64Extend16S),
         0xc4 => Ok(Instruction::I64Extend32S),
 
+        // Reserved opcodes (0xc5-0xcf) - skip/ignore
+        0xc5 | 0xc6 | 0xc7 | 0xc8 | 0xc9 | 0xca | 0xcb | 0xcc | 0xcd | 0xce | 0xcf => Ok(Instruction::Nop),
+
         // Bulk memory operations (0xfc prefix)
         0xfc => {
             let sub_opcode = decoder.read_u8()?;
