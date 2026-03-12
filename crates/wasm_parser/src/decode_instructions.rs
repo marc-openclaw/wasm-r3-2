@@ -253,6 +253,13 @@ fn decode_instruction_with_opcode(decoder: &mut Decoder, opcode: u8) -> Result<I
         0xbe => Ok(Instruction::F32ReinterpretI32),
         0xbf => Ok(Instruction::F64ReinterpretI64),
 
+        // Sign extension opcodes
+        0xc0 => Ok(Instruction::I32Extend8S),
+        0xc1 => Ok(Instruction::I32Extend16S),
+        0xc2 => Ok(Instruction::I64Extend8S),
+        0xc3 => Ok(Instruction::I64Extend16S),
+        0xc4 => Ok(Instruction::I64Extend32S),
+
         // Bulk memory operations (0xfc prefix)
         0xfc => {
             let sub_opcode = decoder.read_u8()?;
