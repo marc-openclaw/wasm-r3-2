@@ -513,10 +513,17 @@
 
         function clearConsole() {
             const consoleOutput = document.getElementById('consoleOutput');
+            const consoleDiv = document.getElementById('console');
             if (consoleOutput) {
                 consoleOutput.innerHTML = '';
             }
             consoleLines = [];
+            // Don't hide the console, just clear it
+            if (consoleDiv) {
+                consoleDiv.classList.remove('hidden');
+            }
+            // Log that console was cleared
+            logToConsole('Console cleared', 'info');
         }
 
         // Enable verbose mode checkbox
