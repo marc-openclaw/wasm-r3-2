@@ -184,12 +184,29 @@ impl<'a> Decoder<'a> {
     }
 
     fn read_section(&mut self) -> Result<(SectionId, &[u8])> {
-        let section_id = self.read_u8()?;
+        let start_pos = self.pos;
+        let section_id = self.read_u8()
+            .map_err(|e| {
+                logger::error(&format!("Failed to read section ID at position {}: {:?}", self.pos, e));
+                e
+            })?;
         logger::info(&format!("Reading section ID: {} at position {}", section_id, self.pos));
-        let section_id = SectionId::try_from(section_id)?;
-        let section_len = self.read_u32_leb128()? as usize;
+        let section_id = SectionId::try_from(section_id)
+            .map_err(|e| {
+                logger::error(&format!("Invalid section ID {} at position {}: {:?}", section_id, start_pos, e));
+                e
+            })?;
+        let section_len = self.read_u32_leb128()
+            .map_err(|e| {
+                logger::error(&format!("Failed to read section length at position {}: {:?}", self.pos, e));
+                e
+            })? as usize;
         logger::info(&format!("Section length: {} bytes", section_len));
-        let section_data = self.consume(section_len)?;
+        let section_data = self.consume(section_len)
+            .map_err(|e| {
+                logger::error(&format!("Failed to consume {} bytes at position {}: {:?}", section_len, self.pos, e));
+                e
+            })?;
         Ok((section_id, section_data))
     }
 }
