@@ -281,7 +281,11 @@ fn decode_instruction_with_opcode(decoder: &mut Decoder, opcode: u8) -> Result<I
         0xd1 => Ok(Instruction::RefIsNull),
         0xd2 => Ok(Instruction::RefFunc { func_idx: decoder.read_u32_leb128()? }),
 
-        _ => Err(WasmError::InvalidOpcode(opcode)),
+        _ => {
+            eprintln!("DEBUG: Invalid opcode 0x{:02x} at pos {}/{}", 
+                opcode, decoder.pos, decoder.bytes.len());
+            Err(WasmError::InvalidOpcode(opcode))
+        }
     }
 }
 
@@ -341,13 +345,43 @@ fn decode_if_branches(decoder: &mut Decoder) -> Result<(Vec<Instruction>, Vec<In
 }
 
 pub fn decode_instructions_until_end(decoder: &mut Decoder) -> Result<Vec<Instruction>> {
+    decode_instructions_until_end_bounded(decoder, None)
+}
+
+/// Decode instructions until end (0x0b) or until reaching a boundary position
+/// If end_pos is Some(pos), decoding stops when decoder.pos >= pos
+pub fn decode_instructions_until_end_bounded(
+    decoder: &mut Decoder,
+    end_pos: Option<usize>,
+) -> Result<Vec<Instruction>> {
     let mut instructions = Vec::new();
     let mut depth = 0;
+    let mut iteration = 0;
 
     loop {
-        match decoder.peek() {
+        iteration += 1;
+        if iteration > 1000 {
+            eprintln!("DEBUG: Too many iterations in decode_instructions_until_end_bounded");
+            return Err(WasmError::UnexpectedEof);
+        }
+
+        // Check if we've reached the boundary
+        if let Some(end) = end_pos {
+            if decoder.pos >= end {
+                eprintln!("DEBUG: decode_instructions_until_end_bounded hit boundary at pos {}/end {}", decoder.pos, end);
+                // At boundary without finding end - this is an error
+                return Err(WasmError::UnexpectedEof);
+            }
+        }
+
+        let byte = decoder.peek();
+        eprintln!("DEBUG: decode_instructions_until_end_bounded iteration {} pos {} byte {:?} depth {}", 
+            iteration, decoder.pos, byte, depth);
+
+        match byte {
             Some(0x0b) if depth == 0 => {
                 decoder.read_u8()?; // consume end
+                eprintln!("DEBUG: Found end at pos {}", decoder.pos);
                 break;
             }
             Some(0x02) | Some(0x03) | Some(0x04) => {
@@ -360,6 +394,7 @@ pub fn decode_instructions_until_end(decoder: &mut Decoder) -> Result<Vec<Instru
             }
             Some(0x05) if depth == 0 => {
                 // else at depth 0 - stop here, don't consume
+                eprintln!("DEBUG: Found else at pos {}", decoder.pos);
                 break;
             }
             Some(_) => {
@@ -375,4 +410,9 @@ pub fn decode_instructions_until_end(decoder: &mut Decoder) -> Result<Vec<Instru
 /// Decode instructions until end of function body (0x0b)
 pub fn decode_instructions(decoder: &mut Decoder) -> Result<Vec<Instruction>> {
     decode_instructions_until_end(decoder)
+}
+
+/// Decode instructions with a known end position (for section-bounded decoding)
+pub fn decode_instructions_bounded(decoder: &mut Decoder, end_pos: usize) -> Result<Vec<Instruction>> {
+    decode_instructions_until_end_bounded(decoder, Some(end_pos))
 }

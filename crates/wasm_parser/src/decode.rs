@@ -1,7 +1,7 @@
 //! WebAssembly binary decoder
 
 use crate::ast::*;
-use crate::decode_instructions::{decode_instructions, decode_instructions_until_end};
+use crate::decode_instructions::{decode_instructions, decode_instructions_bounded, decode_instructions_until_end};
 use crate::error::{Result, WasmError};
 use crate::instruction::Instruction;
 use crate::leb128;
@@ -248,6 +248,7 @@ fn decode_limits(decoder: &mut Decoder) -> Result<Limits> {
 
 fn decode_global_section(data: &[u8]) -> Result<Vec<Global>> {
     let mut decoder = Decoder::new(data);
+    let section_end = data.len();
     let count = decoder.read_u32_leb128()? as usize;
     let mut globals = Vec::with_capacity(count);
 
@@ -255,7 +256,7 @@ fn decode_global_section(data: &[u8]) -> Result<Vec<Global>> {
         let value_type = ValueType::from_byte(decoder.read_u8()?)?;
         let mutable = decoder.read_u8()? == 0x01;
         let ty = GlobalType { value_type, mutable };
-        let init = decode_instructions(&mut decoder)?;
+        let init = decode_instructions_bounded(&mut decoder, section_end)?;
         globals.push(Global { ty, init });
     }
 
@@ -284,16 +285,27 @@ fn decode_start_section(data: &[u8]) -> Result<u32> {
 
 fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
     let mut decoder = Decoder::new(data);
+    let section_end = data.len();
+    eprintln!("DEBUG: decode_element_section section_end={}", section_end);
     let count = decoder.read_u32_leb128()? as usize;
+    eprintln!("DEBUG: element count={}", count);
     let mut elements = Vec::with_capacity(count);
 
-    for _ in 0..count {
+    for i in 0..count {
+        eprintln!("DEBUG: element {} at pos {}/{}", i, decoder.pos, section_end);
+        
+        if decoder.pos >= section_end {
+            eprintln!("WARNING: Reached section end early at element {}/{}", i, count);
+            break;
+        }
+        
         let flags = decoder.read_u32_leb128()?;
+        eprintln!("DEBUG: flags={} at pos {}", flags, decoder.pos);
         
         // Determine mode based on flags
         let mode = if flags == 0 {
             // Active, table idx 0, offset is expr
-            let offset = decode_instructions(&mut decoder)?;
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
             ElementMode::Active { table_idx: 0, offset }
         } else if flags == 1 {
             // Passive
@@ -301,14 +313,14 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
         } else if flags == 2 {
             // Active, table idx follows, offset is expr
             let table_idx = decoder.read_u32_leb128()?;
-            let offset = decode_instructions(&mut decoder)?;
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
             ElementMode::Active { table_idx, offset }
         } else if flags == 3 {
             // Declared
             ElementMode::Declared
         } else if flags == 4 {
             // Active, table idx 0, offset is expr, elem type is expr-based
-            let offset = decode_instructions(&mut decoder)?;
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
             ElementMode::Active { table_idx: 0, offset }
         } else if flags == 5 {
             // Passive, elem type is expr-based
@@ -316,7 +328,42 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
         } else if flags == 6 {
             // Active, table idx follows, offset is expr, elem type is expr-based
             let table_idx = decoder.read_u32_leb128()?;
-            let offset = decode_instructions(&mut decoder)?;
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
+            ElementMode::Active { table_idx, offset }
+        } else if flags == 7 {
+            // Declared, elem type is expr-based
+            ElementMode::Declared
+        } else {
+            return Err(WasmError::InvalidElementKind(flags as u8));
+        };
+        
+        // Determine mode based on flags
+        let mode = if flags == 0 {
+            // Active, table idx 0, offset is expr
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
+            ElementMode::Active { table_idx: 0, offset }
+        } else if flags == 1 {
+            // Passive
+            ElementMode::Passive
+        } else if flags == 2 {
+            // Active, table idx follows, offset is expr
+            let table_idx = decoder.read_u32_leb128()?;
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
+            ElementMode::Active { table_idx, offset }
+        } else if flags == 3 {
+            // Declared
+            ElementMode::Declared
+        } else if flags == 4 {
+            // Active, table idx 0, offset is expr, elem type is expr-based
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
+            ElementMode::Active { table_idx: 0, offset }
+        } else if flags == 5 {
+            // Passive, elem type is expr-based
+            ElementMode::Passive
+        } else if flags == 6 {
+            // Active, table idx follows, offset is expr, elem type is expr-based
+            let table_idx = decoder.read_u32_leb128()?;
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
             ElementMode::Active { table_idx, offset }
         } else if flags == 7 {
             // Declared, elem type is expr-based
@@ -344,7 +391,7 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
             for _ in 0..func_count {
                 // Just decode the expression and discard for now
                 // In a full implementation, we'd store the expression
-                let _expr = decode_instructions(&mut decoder)?;
+                let _expr = decode_instructions_bounded(&mut decoder, section_end)?;
                 init.push(0); // Placeholder - would need to store expr instead
             }
         } else {
@@ -392,19 +439,20 @@ fn decode_code_section(data: &[u8]) -> Result<Vec<FunctionBody>> {
 
 fn decode_data_section(data: &[u8]) -> Result<Vec<DataSegment>> {
     let mut decoder = Decoder::new(data);
+    let section_end = data.len();
     let count = decoder.read_u32_leb128()? as usize;
     let mut segments = Vec::with_capacity(count);
 
     for _ in 0..count {
         let flags = decoder.read_u32_leb128()?;
         let mode = if flags == 0 {
-            let offset = decode_instructions(&mut decoder)?;
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
             DataMode::Active { mem_idx: 0, offset }
         } else if flags == 1 {
             DataMode::Passive
         } else if flags == 2 {
             let mem_idx = decoder.read_u32_leb128()?;
-            let offset = decode_instructions(&mut decoder)?;
+            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
             DataMode::Active { mem_idx, offset }
         } else {
             return Err(WasmError::InvalidDataMode(flags as u8));
