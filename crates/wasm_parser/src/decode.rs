@@ -87,7 +87,8 @@ impl<'a> Decoder<'a> {
     fn read_name(&mut self) -> Result<String> {
         let len = self.read_u32_leb128()? as usize;
         let bytes = self.consume(len)?;
-        String::from_utf8(bytes.to_vec()).map_err(|_| WasmError::Utf8Error)
+        // Allow invalid UTF-8 by using lossy conversion
+        Ok(String::from_utf8_lossy(bytes).into_owned())
     }
 
     pub fn decode(&mut self) -> Result<Module> {

@@ -169,7 +169,7 @@ impl Encoder {
         for import in imports {
             content.write_name(&import.module);
             content.write_name(&import.name);
-            content.write_u8(import.kind as u8);
+            content.write_u8(import.kind.to_byte());
             content.write_u32_leb128(import.idx);
         }
 
@@ -249,7 +249,7 @@ impl Encoder {
 
         for export in exports {
             content.write_name(&export.name);
-            content.write_u8(export.kind as u8);
+            content.write_u8(export.kind.to_byte());
             content.write_u32_leb128(export.idx);
         }
 

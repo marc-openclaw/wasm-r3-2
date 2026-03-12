@@ -201,6 +201,8 @@ pub enum ExternalKind {
     Mem = 0x02,
     /// Global
     Global = 0x03,
+    /// Unknown/custom kind (for extended WASM proposals)
+    Unknown(u8),
 }
 
 impl ExternalKind {
@@ -211,7 +213,19 @@ impl ExternalKind {
             0x01 => Ok(ExternalKind::Table),
             0x02 => Ok(ExternalKind::Mem),
             0x03 => Ok(ExternalKind::Global),
-            _ => Err(WasmError::InvalidKind(byte)),
+            // Allow unknown kinds for compatibility with extended WASM
+            _ => Ok(ExternalKind::Unknown(byte)),
+        }
+    }
+
+    /// Convert to byte
+    pub fn to_byte(self) -> u8 {
+        match self {
+            ExternalKind::Func => 0x00,
+            ExternalKind::Table => 0x01,
+            ExternalKind::Mem => 0x02,
+            ExternalKind::Global => 0x03,
+            ExternalKind::Unknown(byte) => byte,
         }
     }
 }
