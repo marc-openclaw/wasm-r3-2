@@ -75,7 +75,6 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly initLogger: (a: number) => void;
     readonly __wbg_wasmmodule_free: (a: number, b: number) => void;
     readonly start: () => void;
     readonly wasmmodule_dataCount: (a: number) => number;
@@ -91,6 +90,7 @@ export interface InitOutput {
     readonly wasmmodule_tableCount: (a: number) => number;
     readonly wasmmodule_toJSON: (a: number) => [number, number, number, number];
     readonly wasmmodule_typeCount: (a: number) => number;
+    readonly initLogger: (a: number) => void;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __externref_table_dealloc: (a: number) => void;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;

@@ -171,9 +171,15 @@ function __wbg_get_imports() {
         __wbg___wbindgen_throw_6ddd609b62940d55: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
+        __wbg_error_8d9a8e04cd1d3588: function(arg0) {
+            console.error(arg0);
+        },
         __wbg_length_ea16607d7b61445b: function(arg0) {
             const ret = arg0.length;
             return ret;
+        },
+        __wbg_log_524eedafa26daa59: function(arg0) {
+            console.log(arg0);
         },
         __wbg_new_d15cb560a6a0e5f0: function(arg0, arg1) {
             const ret = new Error(getStringFromWasm0(arg0, arg1));

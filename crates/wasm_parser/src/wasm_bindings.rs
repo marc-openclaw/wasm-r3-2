@@ -6,6 +6,7 @@
 use wasm_bindgen::prelude::*;
 use js_sys::{Uint8Array, Error as JsError};
 use crate::{Module, parse, encode_module};
+use crate::logger;
 use serde::{Serialize, Deserialize};
 
 /// WASM module wrapper for JavaScript interop
@@ -26,9 +27,16 @@ impl WasmModule {
     #[wasm_bindgen(js_name = parse)]
     pub fn parse_wasm(data: Uint8Array) -> Result<WasmModule, JsValue> {
         let bytes = data.to_vec();
+        logger::info(&format!("Starting parse of {} bytes", bytes.len()));
         match parse(&bytes) {
-            Ok(module) => Ok(WasmModule { inner: module }),
-            Err(e) => Err(JsError::new(&format!("Parse error: {}", e)).into()),
+            Ok(module) => {
+                logger::info("Parse completed successfully");
+                Ok(WasmModule { inner: module })
+            }
+            Err(e) => {
+                logger::error(&format!("Parse failed: {}", e));
+                Err(JsError::new(&format!("Parse error: {}", e)).into())
+            }
         }
     }
 
