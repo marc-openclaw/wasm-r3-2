@@ -7,6 +7,10 @@ use wasm_parser::{parse, encode_module};
 #[command(about = "CLI tool for WebAssembly module analysis")]
 #[command(version)]
 struct Cli {
+    /// Enable verbose output
+    #[arg(short, long, global = true)]
+    verbose: bool,
+    
     #[command(subcommand)]
     command: Commands,
 }
