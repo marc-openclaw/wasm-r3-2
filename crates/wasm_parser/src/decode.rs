@@ -333,13 +333,15 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
             return Err(WasmError::InvalidElementKind(flags as u8));
         };
 
-        // Check if elem type should be read (flags & 0x03 == 0x01 or flags & 0x03 == 0x03 for passive/declared)
-        // or if it's expr-based (flags & 0x04 != 0)
-        let elem_type = if flags == 1 || flags == 3 || flags == 5 || flags == 7 {
-            // Read elem type for passive/declared segments
+        // Check if elem type should be read
+        // flags 1, 2, 3 have explicit elemkind byte
+        // flags 0 has implicit funcref
+        // flags 4+ are bulk memory/expr-based
+        let elem_type = if flags == 1 || flags == 2 || flags == 3 {
+            // Read elem type for passive/active-explicit/declared segments
             ValueType::from_byte(decoder.read_u8()?)?
         } else {
-            // For active segments, default to funcref
+            // For flags 0 and expr-based (4+), default to funcref
             ValueType::FuncRef
         };
 
