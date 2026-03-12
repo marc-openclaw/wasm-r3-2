@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASM Parser Explorer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        header {
+            background: #16213e;
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid #0f3460;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #e94560;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1rem;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .drop-zone {
+            border: 3px dashed #0f3460;
+            border-radius: 8px;
+            padding: 3rem;
+            text-align: center;
+            background: #16213e;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+        }
+
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: #e94560;
+            background: #1a2a4a;
+        }
+
+        .drop-zone p {
+            color: #888;
+            margin: 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #d63050;
+        }
+
+        button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #0f3460;
+            border-top: 3px solid #e94560;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #5c2828;
+            border: 1px solid #e94560;
+            padding: 1rem;
+            border-radius: 8px;
+            color: #ff9999;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #16213e;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #0f3460;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e94560;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Tree View Styles */
+        .tree-view {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        .tree-node {
+            margin-left: 0;
+        }
+
+        .tree-node .tree-node {
+            margin-left: 1.5rem;
+            border-left: 1px solid #0f3460;
+            padding-left: 0.5rem;
+        }
+
+        .tree-header {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.25rem 0;
+            user-select: none;
+        }
+
+        .tree-header:hover {
+            background: rgba(233, 69, 96, 0.1);
+            border-radius: 4px;
+        }
+
+        .tree-toggle {
+            width: 16px;
+            height: 16px;
+            margin-right: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e94560;
+            font-size: 0.8rem;
+            transition: transform 0.2s;
+        }
+
+        .tree-toggle.collapsed::before {
+            content: '▶';
+        }
+
+        .tree-toggle.expanded::before {
+            content: '▼';
+        }
+
+        .tree-toggle.leaf::before {
+            content: '•';
+            color: #888;
+        }
+
+        .tree-key {
+            color: #9cdcfe;
+            margin-right: 0.5rem;
+        }
+
+        .tree-type {
+            color: #4ec9b0;
+            font-size: 0.85rem;
+        }
+
+        .tree-value {
+            color: #ce9178;
+            margin-left: 0.5rem;
+        }
+
+        .tree-value.number {
+            color: #b5cea8;
+        }
+
+        .tree-value.boolean {
+            color: #569cd6;
+        }
+
+        .tree-value.null {
+            color: #888;
+        }
+
+        .tree-children {
+            display: block;
+        }
+
+        .tree-children.collapsed {
+            display: none;
+        }
+
+        .section-title {
+            color: #e94560;
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .empty-state {
+            color: #666;
+            font-style: italic;
+            padding: 1rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            margin-top: 2rem;
+        }
+
+        footer a {
+            color: #e94560;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔍 WASM Parser Explorer</h1>
+        <p class="subtitle">Parse and explore WebAssembly modules in your browser using Rust WASM</p>
+    </header>
+
+    <main>
+        <div class="drop-zone" id="dropZone">
+            <p>📁 Drag & drop a .wasm file here</p>
+            <p>or</p>
+            <button onclick="document.getElementById('fileInput').click()">Select WASM File</button>
+            <input type="file" id="fileInput" class="file-input" accept=".wasm" />
+        </div>
+
+        <div id="error" class="error"></div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Parsing WebAssembly module...</p>
+        </div>
+
+        <div id="results" class="results">
+            <div class="stats-grid" id="statsGrid"></div>
+            
+            <h2 class="section-title">📦 Module Structure</h2>
+            <div class="tree-view" id="treeView"></div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Powered by <a href="https://github.com/marc-openclaw/wasm-r3-2">wasm-r3-2</a> • Built with Rust 🦀 & WebAssembly</p>
+    </footer>
+
+    <script type="module">
+        import init, { WasmModule } from './wasm_parser.js';
+
+        // Initialize WASM
+        let wasmInitialized = false;
+        
+        async function initWasm() {
+            if (!wasmInitialized) {
+                await init();
+                wasmInitialized = true;
+            }
+        }
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const errorDiv = document.getElementById('error');
+        const loadingDiv = document.getElementById('loading');
+        const resultsDiv = document.getElementById('results');
+
+        // Initialize WASM on page load
+        initWasm().catch(console.error);
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        async function processFile(file) {
+            if (!file.name.endsWith('.wasm')) {
+                showError('Please select a .wasm file');
+                return;
+            }
+
+            hideError();
+            loadingDiv.classList.add('active');
+            resultsDiv.classList.remove('active');
+
+            try {
+                await initWasm();
+                
+                const arrayBuffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+                
+                // Parse using WASM
+                const wasmModule = WasmModule.parse(bytes);
+                
+                // Get stats
+                const stats = {
+                    functions: wasmModule.function_count,
+                    types: wasmModule.type_count,
+                    imports: wasmModule.import_count,
+                    exports: wasmModule.export_count,
+                    memories: wasmModule.memory_count,
+                    tables: wasmModule.table_count,
+                    globals: wasmModule.global_count,
+                    data: wasmModule.data_count,
+                    elements: wasmModule.element_count
+                };
+                
+                // Get JSON representation
+                const jsonStr = wasmModule.to_json();
+                const moduleData = JSON.parse(jsonStr);
+                
+                displayResults(stats, moduleData);
+            } catch (err) {
+                showError(`Error: ${err.message}`);
+                console.error(err);
+            } finally {
+                loadingDiv.classList.remove('active');
+            }
+        }
+
+        function displayResults(stats, data) {
+            resultsDiv.classList.add('active');
+
+            // Display stats
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card"><div class="stat-value">${stats.functions}</div><div class="stat-label">Functions</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.types}</div><div class="stat-label">Types</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.imports}</div><div class="stat-label">Imports</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.exports}</div><div class="stat-label">Exports</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.memories}</div><div class="stat-label">Memories</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.tables}</div><div class="stat-label">Tables</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.globals}</div><div class="stat-label">Globals</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.data}</div><div class="stat-label">Data Segments</div></div>
+            `;
+
+            // Display tree view
+            const treeView = document.getElementById('treeView');
+            treeView.innerHTML = '';
+            treeView.appendChild(renderTree('module', data));
+        }
+
+        function renderTree(key, value, level = 0) {
+            const node = document.createElement('div');
+            node.className = 'tree-node';
+            
+            const header = document.createElement('div');
+            header.className = 'tree-header';
+            
+            const toggle = document.createElement('span');
+            toggle.className = 'tree-toggle';
+            
+            const keySpan = document.createElement('span');
+            keySpan.className = 'tree-key';
+            keySpan.textContent = key;
+            
+            header.appendChild(toggle);
+            header.appendChild(keySpan);
+            
+            if (value === null) {
+                toggle.className += ' leaf';
+                const valSpan = document.createElement('span');
+                valSpan.className = 'tree-value null';
+                valSpan.textContent = 'null';
+                header.appendChild(valSpan);
+                node.appendChild(header);
+            } else if (typeof value === 'object') {
+                if (Array.isArray(value)) {
+                    const typeSpan = document.createElement('span');
+                    typeSpan.className = 'tree-type';
+                    typeSpan.textContent = `array[${value.length}]`;
+                    header.appendChild(typeSpan);
+                    
+                    toggle.className += value.length > 0 ? ' expanded' : ' leaf';
+                    node.appendChild(header);
+                    
+                    if (value.length > 0) {
+                        const children = document.createElement('div');
+                        children.className = 'tree-children';
+                        value.forEach((item, i) => {
+                            children.appendChild(renderTree(`[${i}]`, item, level + 1));
+                        });
+                        node.appendChild(children);
+                        
+                        header.addEventListener('click', () => {
+                            children.classList.toggle('collapsed');
+                            toggle.classList.toggle('expanded');
+                            toggle.classList.toggle('collapsed');
+                        });
+                    }
+                } else {
+                    const keys = Object.keys(value);
+                    const typeSpan = document.createElement('span');
+                    typeSpan.className = 'tree-type';
+                    typeSpan.textContent = `object{${keys.length}}`;
+                    header.appendChild(typeSpan);
+                    
+                    toggle.className += keys.length > 0 ? ' expanded' : ' leaf';
+                    node.appendChild(header);
+                    
+                    if (keys.length > 0) {
+                        const children = document.createElement('div');
+                        children.className = 'tree-children';
+                        keys.forEach(k => {
+                            children.appendChild(renderTree(k, value[k], level + 1));
+                        });
+                        node.appendChild(children);
+                        
+                        header.addEventListener('click', () => {
+                            children.classList.toggle('collapsed');
+                            toggle.classList.toggle('expanded');
+                            toggle.classList.toggle('collapsed');
+                        });
+                    }
+                }
+            } else {
+                toggle.className += ' leaf';
+                const valSpan = document.createElement('span');
+                valSpan.className = 'tree-value';
+                if (typeof value === 'number') {
+                    valSpan.className += ' number';
+                } else if (typeof value === 'boolean') {
+                    valSpan.className += ' boolean';
+                }
+                valSpan.textContent = String(value);
+                header.appendChild(valSpan);
+                node.appendChild(header);
+            }
+            
+            return node;
+        }
+
+        function showError(msg) {
+            errorDiv.textContent = msg;
+            errorDiv.classList.add('active');
+        }
+
+        function hideError() {
+            errorDiv.classList.remove('active');
+        }
+    </script>
+</body>
+</html>

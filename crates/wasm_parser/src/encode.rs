@@ -4,6 +4,7 @@ use crate::ast::*;
 use crate::error::{Result, WasmError};
 use crate::instruction::Instruction;
 use crate::leb128;
+use crate::types::ValueType;
 use crate::{WASM_MAGIC, WASM_VERSION};
 
 /// Binary encoder for WASM
@@ -588,7 +589,7 @@ impl<'a> SectionBuilder<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::FuncType;
+    use crate::types::{FuncType, ValueType};
 
     #[test]
     fn test_encode_empty_module() {

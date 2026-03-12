@@ -1,0 +1,24 @@
+{
+  "name": "wasm_parser",
+  "type": "module",
+  "collaborators": [
+    "WASM R3 Team"
+  ],
+  "description": "A WebAssembly binary parser with editable AST structures",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marc-openclaw/wasm-r3-2"
+  },
+  "files": [
+    "wasm_parser_bg.wasm",
+    "wasm_parser.js",
+    "wasm_parser.d.ts"
+  ],
+  "main": "wasm_parser.js",
+  "types": "wasm_parser.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

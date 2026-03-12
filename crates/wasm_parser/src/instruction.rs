@@ -215,6 +215,7 @@ pub enum Opcode {
 
 /// Memory argument for load/store instructions
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(serde::Serialize, serde::Deserialize))]
 pub struct MemArg {
     pub align: u32,
     pub offset: u32,
@@ -228,6 +229,7 @@ impl MemArg {
 
 /// Instruction with operands
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "wasm", derive(serde::Serialize, serde::Deserialize))]
 pub enum Instruction {
     // Control instructions
     Unreachable,
