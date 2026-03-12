@@ -332,41 +332,6 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
         } else {
             return Err(WasmError::InvalidElementKind(flags as u8));
         };
-        
-        // Determine mode based on flags
-        let mode = if flags == 0 {
-            // Active, table idx 0, offset is expr
-            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
-            ElementMode::Active { table_idx: 0, offset }
-        } else if flags == 1 {
-            // Passive
-            ElementMode::Passive
-        } else if flags == 2 {
-            // Active, table idx follows, offset is expr
-            let table_idx = decoder.read_u32_leb128()?;
-            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
-            ElementMode::Active { table_idx, offset }
-        } else if flags == 3 {
-            // Declared
-            ElementMode::Declared
-        } else if flags == 4 {
-            // Active, table idx 0, offset is expr, elem type is expr-based
-            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
-            ElementMode::Active { table_idx: 0, offset }
-        } else if flags == 5 {
-            // Passive, elem type is expr-based
-            ElementMode::Passive
-        } else if flags == 6 {
-            // Active, table idx follows, offset is expr, elem type is expr-based
-            let table_idx = decoder.read_u32_leb128()?;
-            let offset = decode_instructions_bounded(&mut decoder, section_end)?;
-            ElementMode::Active { table_idx, offset }
-        } else if flags == 7 {
-            // Declared, elem type is expr-based
-            ElementMode::Declared
-        } else {
-            return Err(WasmError::InvalidElementKind(flags as u8));
-        };
 
         // Check if elem type should be read (flags & 0x03 == 0x01 or flags & 0x03 == 0x03 for passive/declared)
         // or if it's expr-based (flags & 0x04 != 0)
