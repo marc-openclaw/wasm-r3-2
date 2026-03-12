@@ -185,8 +185,10 @@ impl<'a> Decoder<'a> {
 
     fn read_section(&mut self) -> Result<(SectionId, &[u8])> {
         let section_id = self.read_u8()?;
+        logger::info(&format!("Reading section ID: {} at position {}", section_id, self.pos));
         let section_id = SectionId::try_from(section_id)?;
         let section_len = self.read_u32_leb128()? as usize;
+        logger::info(&format!("Section length: {} bytes", section_len));
         let section_data = self.consume(section_len)?;
         Ok((section_id, section_data))
     }
