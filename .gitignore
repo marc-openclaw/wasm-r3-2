@@ -17,6 +17,9 @@ Thumbs.db
 *.wasm
 *.wat
 
+# Allow WASM in docs for GitHub Pages
+!docs/*.wasm
+
 # Build artifacts
 *.o
 *.a
