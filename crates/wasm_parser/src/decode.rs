@@ -98,31 +98,72 @@ impl<'a> Decoder<'a> {
         self.check_version()?;
 
         let mut module = Module::new();
+        let mut section_count = 0;
 
         while self.pos < self.bytes.len() {
+            let section_start = self.pos;
             match self.read_section()? {
                 (SectionId::Custom, data) => {
+                    logger::info(&format!("Section {}: Custom ({} bytes)", section_count, data.len()));
                     let mut custom = Decoder::new(data);
                     let name = custom.read_name()?;
                     let remaining = custom.bytes.len() - custom.pos;
                     let data_bytes = custom.consume(remaining)?.to_vec();
                     module.custom_sections.push(CustomSection { name, data: data_bytes });
                 }
-                (SectionId::Type, data) => module.types = decode_type_section(data)?,
-                (SectionId::Import, data) => module.imports = decode_import_section(data)?,
-                (SectionId::Function, data) => module.funcs = decode_func_section(data)?,
-                (SectionId::Table, data) => module.tables = decode_table_section(data)?,
-                (SectionId::Memory, data) => module.memories = decode_memory_section(data)?,
-                (SectionId::Global, data) => module.globals = decode_global_section(data)?,
-                (SectionId::Export, data) => module.exports = decode_export_section(data)?,
-                (SectionId::Start, data) => module.start = Some(decode_start_section(data)?),
-                (SectionId::Element, data) => module.elements = decode_element_section(data)?,
-                (SectionId::Code, data) => module.code = decode_code_section(data)?,
-                (SectionId::Data, data) => module.data = decode_data_section(data)?,
-                (SectionId::DataCount, data) => module.data_count = Some(decode_datacount_section(data)?),
+                (SectionId::Type, data) => {
+                    logger::info(&format!("Section {}: Type ({} bytes)", section_count, data.len()));
+                    module.types = decode_type_section(data)?;
+                }
+                (SectionId::Import, data) => {
+                    logger::info(&format!("Section {}: Import ({} bytes)", section_count, data.len()));
+                    module.imports = decode_import_section(data)?;
+                }
+                (SectionId::Function, data) => {
+                    logger::info(&format!("Section {}: Function ({} bytes)", section_count, data.len()));
+                    module.funcs = decode_func_section(data)?;
+                }
+                (SectionId::Table, data) => {
+                    logger::info(&format!("Section {}: Table ({} bytes)", section_count, data.len()));
+                    module.tables = decode_table_section(data)?;
+                }
+                (SectionId::Memory, data) => {
+                    logger::info(&format!("Section {}: Memory ({} bytes)", section_count, data.len()));
+                    module.memories = decode_memory_section(data)?;
+                }
+                (SectionId::Global, data) => {
+                    logger::info(&format!("Section {}: Global ({} bytes)", section_count, data.len()));
+                    module.globals = decode_global_section(data)?;
+                }
+                (SectionId::Export, data) => {
+                    logger::info(&format!("Section {}: Export ({} bytes)", section_count, data.len()));
+                    module.exports = decode_export_section(data)?;
+                }
+                (SectionId::Start, data) => {
+                    logger::info(&format!("Section {}: Start ({} bytes)", section_count, data.len()));
+                    module.start = Some(decode_start_section(data)?);
+                }
+                (SectionId::Element, data) => {
+                    logger::info(&format!("Section {}: Element ({} bytes)", section_count, data.len()));
+                    module.elements = decode_element_section(data)?;
+                }
+                (SectionId::Code, data) => {
+                    logger::info(&format!("Section {}: Code ({} bytes)", section_count, data.len()));
+                    module.code = decode_code_section(data)?;
+                }
+                (SectionId::Data, data) => {
+                    logger::info(&format!("Section {}: Data ({} bytes)", section_count, data.len()));
+                    module.data = decode_data_section(data)?;
+                }
+                (SectionId::DataCount, data) => {
+                    logger::info(&format!("Section {}: DataCount ({} bytes)", section_count, data.len()));
+                    module.data_count = Some(decode_datacount_section(data)?);
+                }
             }
+            section_count += 1;
         }
 
+        logger::info(&format!("Parsed {} sections successfully", section_count));
         Ok(module)
     }
 
