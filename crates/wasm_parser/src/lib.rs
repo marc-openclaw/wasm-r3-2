@@ -5,6 +5,7 @@
 
 pub mod ast;
 pub mod decode;
+pub mod decode_instructions;
 pub mod encode;
 pub mod error;
 pub mod instruction;

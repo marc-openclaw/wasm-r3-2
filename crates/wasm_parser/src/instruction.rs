@@ -20,6 +20,10 @@ pub enum Opcode {
     Return = 0x0f,
     Call = 0x10,
     CallIndirect = 0x11,
+    ReturnCall = 0x12,
+    ReturnCallIndirect = 0x13,
+    CallRef = 0x14,
+    ReturnCallRef = 0x15,
 
     // Parametric instructions
     Drop = 0x1a,
@@ -245,6 +249,10 @@ pub enum Instruction {
     Return,
     Call { function_idx: u32 },
     CallIndirect { type_idx: u32, table_idx: u32 },
+    CallRef { type_idx: u32 },
+    ReturnCall { function_idx: u32 },
+    ReturnCallIndirect { type_idx: u32, table_idx: u32 },
+    ReturnCallRef { type_idx: u32 },
 
     // Parametric instructions
     Drop,
