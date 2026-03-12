@@ -348,16 +348,20 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
     let mut decoder = Decoder::new(data);
     let section_end = data.len();
     let count = decoder.read_u32_leb128()? as usize;
+    logger::info(&format!("Element section: {} elements, {} bytes total", count, section_end));
     let mut elements = Vec::with_capacity(count);
 
     for i in 0..count {
+        let elem_start = decoder.pos;
+        logger::info(&format!("Element {} at position {}/{} in section", i, elem_start, section_end));
         
         if decoder.pos >= section_end {
-            logger::warn_msg(&format!("Reached section end early at element {}/{}", i, count));
-            break;
+            logger::error(&format!("Element {} starts at {} which is past section end {}", i, decoder.pos, section_end));
+            return Err(WasmError::UnexpectedEof);
         }
         
         let flags = decoder.read_u8()? as u32;
+        logger::info(&format!("Element {} flags={} at position {}/{}", i, flags, decoder.pos, section_end));
         
         // Determine mode based on flags
         let mode = if flags == 0 {
@@ -391,6 +395,7 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
             // Declared, elem type is expr-based
             ElementMode::Declared
         } else {
+            logger::error(&format!("Invalid element flags={} at position {}", flags, decoder.pos));
             return Err(WasmError::InvalidElementKind(flags as u8));
         };
 
@@ -407,27 +412,39 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
         };
 
         let func_count = decoder.read_u32_leb128()? as usize;
+        logger::info(&format!("Element {} has {} functions at position {}/{}", i, func_count, decoder.pos, section_end));
         let mut init = Vec::with_capacity(func_count);
         
         // Check if expr-based (flags & 0x04 != 0)
         if flags & 0x04 != 0 {
             // Expr-based: each init is an expr that evaluates to a ref
-            for _ in 0..func_count {
-                // Just decode the expression and discard for now
-                // In a full implementation, we'd store the expression
+            for j in 0..func_count {
+                if decoder.pos >= section_end {
+                    logger::error(&format!("Element {} init {}: position {} past section end {}", i, j, decoder.pos, section_end));
+                    return Err(WasmError::UnexpectedEof);
+                }
+                let init_pos = decoder.pos;
                 let _expr = decode_instructions_bounded(&mut decoder, section_end)?;
-                init.push(0); // Placeholder - would need to store expr instead
+                init.push(0); // Placeholder
+                logger::info(&format!("Element {} init {}: expr from {} to {}", i, j, init_pos, decoder.pos));
             }
         } else {
             // Function index based
-            for _ in 0..func_count {
-                init.push(decoder.read_u32_leb128()?);
+            for j in 0..func_count {
+                if decoder.pos >= section_end {
+                    logger::error(&format!("Element {} init {}: position {} past section end {}", i, j, decoder.pos, section_end));
+                    return Err(WasmError::UnexpectedEof);
+                }
+                let func_idx = decoder.read_u32_leb128()?;
+                init.push(func_idx);
             }
         }
-
+        
+        logger::info(&format!("Element {} complete: {} bytes used", i, decoder.pos - elem_start));
         elements.push(ElementSegment { mode, elem_type, init });
     }
 
+    logger::info(&format!("Element section complete: {}/{} bytes used", decoder.pos, section_end));
     Ok(elements)
 }
 

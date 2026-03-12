@@ -195,9 +195,6 @@ function __wbg_get_imports() {
         __wbg_set_8c0b3ffcf05d61c2: function(arg0, arg1, arg2) {
             arg0.set(getArrayU8FromWasm0(arg1, arg2));
         },
-        __wbg_warn_69424c2d92a2fa73: function(arg0) {
-            console.warn(arg0);
-        },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
