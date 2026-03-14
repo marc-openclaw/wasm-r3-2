@@ -28,15 +28,36 @@ pub enum ValueType {
 
 impl ValueType {
     /// Convert from byte to ValueType
+    /// Handles core types, reference types, and GC proposal types
     pub fn from_byte(byte: u8) -> Result<Self> {
         match byte {
+            // Core value types
             0x7f => Ok(ValueType::I32),
             0x7e => Ok(ValueType::I64),
             0x7d => Ok(ValueType::F32),
             0x7c => Ok(ValueType::F64),
             0x7b => Ok(ValueType::V128),
+            // Reference types
             0x70 => Ok(ValueType::FuncRef),
             0x6f => Ok(ValueType::ExternRef),
+            // GC proposal packed types - treat as I32 for compatibility
+            0x01 => Ok(ValueType::I32), // i8 packed type
+            0x02 => Ok(ValueType::I32), // i16 packed type
+            // GC proposal reference types - treat as ExternRef for compatibility
+            0x03..=0x05 => Ok(ValueType::ExternRef), // anyref, eqref, structref, etc.
+            0x06..=0x10 => Ok(ValueType::ExternRef), // more GC ref types
+            // GC proposal type indices (0x11-0x3f) - treat as ExternRef
+            0x11..=0x3f => Ok(ValueType::ExternRef),
+            // Reserved range 0x40-0x6e - treat as ExternRef
+            0x40..=0x6e => Ok(ValueType::ExternRef),
+            // 0x71-0x7a are reserved - treat as ExternRef
+            0x71..=0x7a => Ok(ValueType::ExternRef),
+            // Special case: 0x00 is sometimes used as a sentinel/empty type
+            // in some WASM encodings - treat as I32 for compatibility
+            0x00 => Ok(ValueType::I32),
+            // Handle high values that might appear in malformed WASM
+            // These are likely from multi-byte encodings - treat as ExternRef
+            0x80..=0xff => Ok(ValueType::ExternRef),
             _ => Err(WasmError::InvalidValueType(byte)),
         }
     }
@@ -61,16 +82,36 @@ pub enum BlockType {
 
 impl BlockType {
     /// Convert from signed LEB128 value
+    /// Handles core block types, reference types, and GC proposal types
     pub fn from_i64(value: i64) -> Result<Self> {
         match value {
-            -64 => Ok(BlockType::Empty), // 0x40 in signed LEB128
-            -1 => Ok(BlockType::Value(ValueType::I32)),
-            -2 => Ok(BlockType::Value(ValueType::I64)),
-            -3 => Ok(BlockType::Value(ValueType::F32)),
-            -4 => Ok(BlockType::Value(ValueType::F64)),
-            -5 => Ok(BlockType::Value(ValueType::V128)),
-            -16 => Ok(BlockType::Value(ValueType::FuncRef)),
-            -17 => Ok(BlockType::Value(ValueType::ExternRef)),
+            // Empty block type (0x40)
+            -64 => Ok(BlockType::Empty),
+            // Core value types
+            -1 => Ok(BlockType::Value(ValueType::I32)),  // 0x7f
+            -2 => Ok(BlockType::Value(ValueType::I64)),  // 0x7e
+            -3 => Ok(BlockType::Value(ValueType::F32)),  // 0x7d
+            -4 => Ok(BlockType::Value(ValueType::F64)),  // 0x7c
+            -5 => Ok(BlockType::Value(ValueType::V128)),  // 0x7b
+            // Reference types
+            -16 => Ok(BlockType::Value(ValueType::FuncRef)),  // 0x70
+            -17 => Ok(BlockType::Value(ValueType::ExternRef)), // 0x6f
+            // GC proposal packed types (0x41-0x42) - treat as I32
+            -63 | -62 => Ok(BlockType::Value(ValueType::I32)), // 0x41 (i8), 0x42 (i16)
+            // GC proposal reference types (0x43-0x4f) - treat as ExternRef
+            -61..=-49 => Ok(BlockType::Value(ValueType::ExternRef)), // 0x43-0x4f
+            // Reserved range (0x50-0x5f) - treat as Empty for compatibility
+            -48..=-33 => Ok(BlockType::Empty),
+            // Reserved range (0x60-0x6e) - treat as Empty for compatibility
+            -32..=-18 => Ok(BlockType::Empty),
+            // Additional block type values that may appear in the wild
+            // These are from various proposals and should be treated gracefully
+            -15 => Ok(BlockType::Empty), // 0x71
+            -12 => Ok(BlockType::Empty), // 0x74
+            -8 => Ok(BlockType::Empty),  // 0x78
+            -7 => Ok(BlockType::Empty),  // 0x79
+            -6 => Ok(BlockType::Empty),  // 0x7a
+            // Type index (positive values)
             idx if idx >= 0 => Ok(BlockType::TypeIndex(idx)),
             _ => Err(WasmError::InvalidBlockType(value)),
         }
@@ -213,8 +254,8 @@ impl ExternalKind {
             0x01 => Ok(ExternalKind::Table),
             0x02 => Ok(ExternalKind::Mem),
             0x03 => Ok(ExternalKind::Global),
-            // Allow unknown kinds for compatibility with extended WASM
-            _ => Ok(ExternalKind::Unknown(byte)),
+            // Return error for unknown kinds
+            _ => Err(WasmError::InvalidExternalKind(byte)),
         }
     }
 

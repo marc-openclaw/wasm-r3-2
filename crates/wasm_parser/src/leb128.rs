@@ -197,14 +197,20 @@ pub fn encode_u64(value: u64) -> Vec<u8> {
 pub fn encode_i32(value: i32) -> Vec<u8> {
     let mut result = Vec::new();
     let mut value = value;
+    let is_negative = value < 0;
 
     loop {
         let mut byte = (value & 0x7f) as u8;
         value >>= 7;
 
-        // Check if we need more bytes
-        let done = value == 0 && (byte & 0x40) == 0 ||
-                   value == -1 && (byte & 0x40) != 0;
+        // Check if this is the last byte
+        // For positive: remaining value must be 0 and bit 6 clear (to avoid looking like negative)
+        // For negative: remaining value must be -1 and bit 6 set (for sign extension)
+        let done = if !is_negative {
+            value == 0 && (byte & 0x40) == 0
+        } else {
+            value == -1 && (byte & 0x40) != 0
+        };
 
         if !done {
             byte |= 0x80;
@@ -213,6 +219,14 @@ pub fn encode_i32(value: i32) -> Vec<u8> {
         result.push(byte);
 
         if done {
+            break;
+        }
+
+        // If we've shifted all value out but still haven't signaled completion,
+        // we need to add a terminator byte
+        if !is_negative && value == 0 {
+            // Add a zero byte with continuation bit clear to signal end
+            result.push(0x00);
             break;
         }
     }
@@ -308,7 +322,8 @@ mod tests {
     fn test_known_i32_values() {
         // Test known LEB128 encodings for signed values
         assert_eq!(encode_i32(-123456), vec![0xc0, 0xbb, 0x78]);
-        assert_eq!(encode_i32(127), vec![0x7f]);
+        // 127 needs 2 bytes because bit 6 is set (would look like negative if single byte)
+        assert_eq!(encode_i32(127), vec![0xff, 0x00]);
         assert_eq!(encode_i32(-1), vec![0x7f]);
         assert_eq!(encode_i32(-128), vec![0x80, 0x7f]);
     }

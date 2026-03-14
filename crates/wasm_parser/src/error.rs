@@ -50,6 +50,9 @@ pub enum WasmError {
     #[error("Invalid import/export kind: {0}")]
     InvalidKind(u8),
 
+    #[error("Invalid external kind: {0}")]
+    InvalidExternalKind(u8),
+
     #[error("Invalid mutability: {0}")]
     InvalidMutability(u8),
 

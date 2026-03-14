@@ -22,12 +22,13 @@ pub fn encode_module(module: &Module) -> Result<Vec<u8>> {
 ///
 /// Example:
 /// ```
-/// use wasm_parser::{parse, encode, Module};
+/// use wasm_parser::{parse, encode_module, Module};
 ///
-/// let bytes = include_bytes!("my_module.wasm");
-/// let mut module = parse(bytes).unwrap();
+/// // Parse WASM bytes
+/// let bytes = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]; // minimal WASM module
+/// let mut module = parse(&bytes).unwrap();
 /// // Modify the module...
-/// let output = encode(&module).unwrap();
+/// let output = encode_module(&module).unwrap();
 /// ```
 pub struct WasmParser;
 

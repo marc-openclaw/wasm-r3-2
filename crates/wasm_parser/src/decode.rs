@@ -1,7 +1,7 @@
 //! WebAssembly binary decoder
 
 use crate::ast::*;
-use crate::decode_instructions::{decode_instructions, decode_instructions_bounded, decode_instructions_until_end, decode_single_instruction};
+use crate::decode_instructions::{decode_instructions, decode_instructions_bounded, decode_instructions_until_end};
 use crate::error::{Result, WasmError};
 use crate::instruction::Instruction;
 use crate::leb128;
@@ -507,21 +507,10 @@ fn decode_code_section(data: &[u8]) -> Result<Vec<FunctionBody>> {
             locals.push(Local { count, ty });
         }
 
-        // Decode ALL instructions until body_end (not just until 'end')
-        let mut instructions = Vec::new();
-        while decoder.pos < body_end {
-            let instr_start = decoder.pos;
-            match decode_single_instruction(&mut decoder) {
-                Ok(instr) => {
-                    logger::info(&format!("Function {}: decoded instruction {:?} at position {} (size {})", i, instr, instr_start, decoder.pos - instr_start));
-                    instructions.push(instr);
-                }
-                Err(e) => {
-                    logger::error(&format!("Function {}: failed to decode instruction at position {}: {:?}", i, decoder.pos, e));
-                    return Err(e);
-                }
-            }
-        }
+        // Decode ALL instructions until body_end
+        logger::info(&format!("Function {}: decoding instructions from {} to {}", i, decoder.pos, body_end));
+        let instructions = decode_instructions_bounded(&mut decoder, body_end)?;
+        logger::info(&format!("Function {}: decoded {} instructions, now at position {}", i, instructions.len(), decoder.pos));
 
         if decoder.pos != body_end {
             return Err(WasmError::ValidationError(format!(
