@@ -104,7 +104,7 @@ impl<'a> Decoder<'a> {
             let section_start = self.pos;
             match self.read_section()? {
                 (SectionId::Custom, data) => {
-                    logger::info(&format!("Section {}: Custom ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Custom ({} bytes)", section_count, data.len()));
                     let mut custom = Decoder::new(data);
                     let name = custom.read_name()?;
                     let remaining = custom.bytes.len() - custom.pos;
@@ -112,58 +112,58 @@ impl<'a> Decoder<'a> {
                     module.custom_sections.push(CustomSection { name, data: data_bytes });
                 }
                 (SectionId::Type, data) => {
-                    logger::info(&format!("Section {}: Type ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Type ({} bytes)", section_count, data.len()));
                     module.types = decode_type_section(data)?;
                 }
                 (SectionId::Import, data) => {
-                    logger::info(&format!("Section {}: Import ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Import ({} bytes)", section_count, data.len()));
                     module.imports = decode_import_section(data)?;
                 }
                 (SectionId::Function, data) => {
-                    logger::info(&format!("Section {}: Function ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Function ({} bytes)", section_count, data.len()));
                     module.funcs = decode_func_section(data)?;
                 }
                 (SectionId::Table, data) => {
-                    logger::info(&format!("Section {}: Table ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Table ({} bytes)", section_count, data.len()));
                     module.tables = decode_table_section(data)?;
                 }
                 (SectionId::Memory, data) => {
-                    logger::info(&format!("Section {}: Memory ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Memory ({} bytes)", section_count, data.len()));
                     module.memories = decode_memory_section(data)?;
                 }
                 (SectionId::Global, data) => {
-                    logger::info(&format!("Section {}: Global ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Global ({} bytes)", section_count, data.len()));
                     module.globals = decode_global_section(data)?;
                 }
                 (SectionId::Export, data) => {
-                    logger::info(&format!("Section {}: Export ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Export ({} bytes)", section_count, data.len()));
                     module.exports = decode_export_section(data)?;
                 }
                 (SectionId::Start, data) => {
-                    logger::info(&format!("Section {}: Start ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Start ({} bytes)", section_count, data.len()));
                     module.start = Some(decode_start_section(data)?);
                 }
                 (SectionId::Element, data) => {
-                    logger::info(&format!("Section {}: Element ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Element ({} bytes)", section_count, data.len()));
                     module.elements = decode_element_section(data)?;
                 }
                 (SectionId::Code, data) => {
-                    logger::info(&format!("Section {}: Code ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Code ({} bytes)", section_count, data.len()));
                     module.code = decode_code_section(data)?;
                 }
                 (SectionId::Data, data) => {
-                    logger::info(&format!("Section {}: Data ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: Data ({} bytes)", section_count, data.len()));
                     module.data = decode_data_section(data)?;
                 }
                 (SectionId::DataCount, data) => {
-                    logger::info(&format!("Section {}: DataCount ({} bytes)", section_count, data.len()));
+                    logger::debug(&format!("Section {}: DataCount ({} bytes)", section_count, data.len()));
                     module.data_count = Some(decode_datacount_section(data)?);
                 }
             }
             section_count += 1;
         }
 
-        logger::info(&format!("Parsed {} sections successfully", section_count));
+        logger::debug(&format!("Parsed {} sections successfully", section_count));
         Ok(module)
     }
 
@@ -190,7 +190,7 @@ impl<'a> Decoder<'a> {
                 logger::error(&format!("Failed to read section ID at position {}: {:?}", self.pos, e));
                 e
             })?;
-        logger::info(&format!("Reading section ID: {} at position {}", section_id, self.pos));
+        logger::debug(&format!("Reading section ID: {} at position {}", section_id, self.pos));
         let section_id = SectionId::try_from(section_id)
             .map_err(|e| {
                 logger::error(&format!("Invalid section ID {} at position {}: {:?}", section_id, start_pos, e));
@@ -201,7 +201,7 @@ impl<'a> Decoder<'a> {
                 logger::error(&format!("Failed to read section length at position {}: {:?}", self.pos, e));
                 e
             })? as usize;
-        logger::info(&format!("Section length: {} bytes", section_len));
+        logger::debug(&format!("Section length: {} bytes", section_len));
         let section_data = self.consume(section_len)
             .map_err(|e| {
                 logger::error(&format!("Failed to consume {} bytes at position {}: {:?}", section_len, self.pos, e));
@@ -384,12 +384,12 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
     let mut decoder = Decoder::new(data);
     let section_end = data.len();
     let count = decoder.read_u32_leb128()? as usize;
-    logger::info(&format!("Element section: {} elements, {} bytes total", count, section_end));
+    logger::debug(&format!("Element section: {} elements, {} bytes total", count, section_end));
     let mut elements = Vec::with_capacity(count);
 
     for i in 0..count {
         let elem_start = decoder.pos;
-        logger::info(&format!("Element {} at position {}/{} in section", i, elem_start, section_end));
+        logger::debug(&format!("Element {} at position {}/{} in section", i, elem_start, section_end));
         
         if decoder.pos >= section_end {
             logger::error(&format!("Element {} starts at {} which is past section end {}", i, decoder.pos, section_end));
@@ -397,7 +397,7 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
         }
         
         let flags = decoder.read_u8()? as u32;
-        logger::info(&format!("Element {} flags={} at position {}/{}", i, flags, decoder.pos, section_end));
+        logger::debug(&format!("Element {} flags={} at position {}/{}", i, flags, decoder.pos, section_end));
         
         // Determine mode based on flags
         let mode = if flags == 0 {
@@ -448,7 +448,7 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
         };
 
         let func_count = decoder.read_u32_leb128()? as usize;
-        logger::info(&format!("Element {} has {} functions at position {}/{}", i, func_count, decoder.pos, section_end));
+        logger::debug(&format!("Element {} has {} functions at position {}/{}", i, func_count, decoder.pos, section_end));
         let mut init = Vec::with_capacity(func_count);
         
         // Check if expr-based (flags & 0x04 != 0)
@@ -462,7 +462,7 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
                 let init_pos = decoder.pos;
                 let _expr = decode_instructions_bounded(&mut decoder, section_end)?;
                 init.push(0); // Placeholder
-                logger::info(&format!("Element {} init {}: expr from {} to {}", i, j, init_pos, decoder.pos));
+                logger::debug(&format!("Element {} init {}: expr from {} to {}", i, j, init_pos, decoder.pos));
             }
         } else {
             // Function index based
@@ -476,11 +476,11 @@ fn decode_element_section(data: &[u8]) -> Result<Vec<ElementSegment>> {
             }
         }
         
-        logger::info(&format!("Element {} complete: {} bytes used", i, decoder.pos - elem_start));
+        logger::debug(&format!("Element {} complete: {} bytes used", i, decoder.pos - elem_start));
         elements.push(ElementSegment { mode, elem_type, init });
     }
 
-    logger::info(&format!("Element section complete: {}/{} bytes used", decoder.pos, section_end));
+    logger::debug(&format!("Element section complete: {}/{} bytes used", decoder.pos, section_end));
     Ok(elements)
 }
 
@@ -494,12 +494,12 @@ fn decode_code_section(data: &[u8]) -> Result<Vec<FunctionBody>> {
         let body_start = decoder.pos;
         let body_end = body_start + body_size;
         
-        logger::info(&format!("Function {}: body size {} bytes, from {} to {}", i, body_size, body_start, body_end));
+        logger::debug(&format!("Function {}: body size {} bytes, from {} to {}", i, body_size, body_start, body_end));
 
         let local_count = decoder.read_u32_leb128()? as usize;
         let mut locals = Vec::with_capacity(local_count);
         
-        logger::info(&format!("Function {}: {} locals", i, local_count));
+        logger::debug(&format!("Function {}: {} locals", i, local_count));
 
         for j in 0..local_count {
             let count = decoder.read_u32_leb128()?;
@@ -508,9 +508,9 @@ fn decode_code_section(data: &[u8]) -> Result<Vec<FunctionBody>> {
         }
 
         // Decode ALL instructions until body_end
-        logger::info(&format!("Function {}: decoding instructions from {} to {}", i, decoder.pos, body_end));
+        logger::debug(&format!("Function {}: decoding instructions from {} to {}", i, decoder.pos, body_end));
         let instructions = decode_instructions_bounded(&mut decoder, body_end)?;
-        logger::info(&format!("Function {}: decoded {} instructions, now at position {}", i, instructions.len(), decoder.pos));
+        logger::debug(&format!("Function {}: decoded {} instructions, now at position {}", i, instructions.len(), decoder.pos));
 
         if decoder.pos != body_end {
             return Err(WasmError::ValidationError(format!(
@@ -519,7 +519,7 @@ fn decode_code_section(data: &[u8]) -> Result<Vec<FunctionBody>> {
             )));
         }
 
-        logger::info(&format!("Function {}: complete with {} instructions", i, instructions.len()));
+        logger::debug(&format!("Function {}: complete with {} instructions", i, instructions.len()));
         bodies.push(FunctionBody { locals, instructions });
     }
 

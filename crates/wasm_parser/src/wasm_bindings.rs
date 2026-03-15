@@ -27,10 +27,10 @@ impl WasmModule {
     #[wasm_bindgen(js_name = parse)]
     pub fn parse_wasm(data: Uint8Array) -> Result<WasmModule, JsValue> {
         let bytes = data.to_vec();
-        logger::info(&format!("Starting parse of {} bytes", bytes.len()));
+        logger::debug(&format!("Starting parse of {} bytes", bytes.len()));
         match parse(&bytes) {
             Ok(module) => {
-                logger::info("Parse completed successfully");
+                logger::debug("Parse completed successfully");
                 Ok(WasmModule { inner: module })
             }
             Err(e) => {

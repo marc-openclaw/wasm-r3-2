@@ -593,7 +593,7 @@
                 };
                 
                 // Get JSON representation
-                const jsonStr = wasmModule.to_json();
+                const jsonStr = wasmModule.toJSON();
                 const moduleData = JSON.parse(jsonStr);
                 
                 displayResults(stats, moduleData);
