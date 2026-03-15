@@ -16,22 +16,25 @@
             background: #1a1a2e;
             color: #eee;
             min-height: 100vh;
+            line-height: 1.6;
         }
 
         header {
             background: #16213e;
-            padding: 1rem 2rem;
+            padding: 1.5rem 2rem;
             border-bottom: 2px solid #0f3460;
+            text-align: center;
         }
 
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             color: #e94560;
+            margin-bottom: 0.5rem;
         }
 
         .subtitle {
             color: #888;
-            font-size: 0.9rem;
+            font-size: 1rem;
         }
 
         main {
@@ -55,9 +58,105 @@
             background: #1a2a4a;
         }
 
+        .controls {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .verbose-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .verbose-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .console {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .console.hidden {
+            display: none;
+        }
+
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .console-header span {
+            color: #58a6ff;
+            font-weight: 500;
+        }
+
+        .console-header button {
+            background: #30363d;
+            border: none;
+            color: #c9d1d9;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .console-header button:hover {
+            background: #484f58;
+        }
+
+        .console-output {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+            color: #c9d1d9;
+            line-height: 1.5;
+        }
+
+        .console-line {
+            padding: 0.1rem 0;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .console-line:last-child {
+            border-bottom: none;
+        }
+
+        .console-line.error {
+            color: #f85149;
+        }
+
+        .console-line.warn {
+            color: #d29922;
+        }
+
+        .console-line.info {
+            color: #58a6ff;
+        }
+
+        .console-line.debug {
+            color: #8b949e;
+        }
+
         .drop-zone p {
             color: #888;
             margin: 1rem 0;
+            font-size: 1.1rem;
         }
 
         button {
@@ -84,6 +183,45 @@
             display: none;
         }
 
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #0f3460;
+            border-top: 3px solid #e94560;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #5c2828;
+            border: 1px solid #e94560;
+            padding: 1rem;
+            border-radius: 8px;
+            color: #ff9999;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
         .results {
             display: none;
         }
@@ -92,9 +230,10 @@
             display: block;
         }
 
+        /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 1rem;
             margin-bottom: 2rem;
         }
@@ -119,265 +258,282 @@
             margin-top: 0.5rem;
         }
 
-        .section {
+        /* Tree View Styles */
+        .tree-view {
             background: #16213e;
             border-radius: 8px;
-            margin-bottom: 1rem;
-            overflow: hidden;
+            padding: 1rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
         }
 
-        .section-header {
-            background: #0f3460;
-            padding: 1rem;
-            cursor: pointer;
+        .tree-node {
+            margin-left: 0;
+        }
+
+        .tree-node .tree-node {
+            margin-left: 1.5rem;
+            border-left: 1px solid #0f3460;
+            padding-left: 0.5rem;
+        }
+
+        .tree-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+            padding: 0.25rem 0;
+            user-select: none;
         }
 
-        .section-header:hover {
-            background: #1a4a7a;
+        .tree-header:hover {
+            background: rgba(233, 69, 96, 0.1);
+            border-radius: 4px;
         }
 
-        .section-title {
-            font-weight: 600;
-        }
-
-        .section-count {
-            background: #e94560;
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
+        .tree-toggle {
+            width: 16px;
+            height: 16px;
+            margin-right: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e94560;
             font-size: 0.8rem;
+            transition: transform 0.2s;
         }
 
-        .section-content {
-            display: none;
-            padding: 1rem;
-            max-height: 400px;
-            overflow-y: auto;
+        .tree-toggle.collapsed::before {
+            content: '▶';
         }
 
-        .section-content.active {
+        .tree-toggle.expanded::before {
+            content: '▼';
+        }
+
+        .tree-toggle.leaf::before {
+            content: '•';
+            color: #888;
+        }
+
+        .tree-key {
+            color: #9cdcfe;
+            margin-right: 0.5rem;
+        }
+
+        .tree-type {
+            color: #4ec9b0;
+            font-size: 0.85rem;
+        }
+
+        .tree-value {
+            color: #ce9178;
+            margin-left: 0.5rem;
+        }
+
+        .tree-value.number {
+            color: #b5cea8;
+        }
+
+        .tree-value.boolean {
+            color: #569cd6;
+        }
+
+        .tree-value.null {
+            color: #888;
+        }
+
+        .tree-children {
             display: block;
         }
 
-        .item {
-            padding: 0.75rem;
-            border-bottom: 1px solid #0f3460;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.9rem;
+        .tree-children.collapsed {
+            display: none;
         }
 
-        .item:last-child {
-            border-bottom: none;
-        }
-
-        .item-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.25rem;
-        }
-
-        .item-name {
+        .section-title {
             color: #e94560;
-            font-weight: 600;
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #0f3460;
         }
 
-        .item-type {
-            color: #888;
-            font-size: 0.8rem;
-        }
-
-        .item-details {
-            color: #aaa;
-            font-size: 0.85rem;
-        }
-
-        .error {
-            background: #5c2828;
-            border: 1px solid #e94560;
+        .empty-state {
+            color: #666;
+            font-style: italic;
             padding: 1rem;
-            border-radius: 8px;
-            color: #ff9999;
-            margin-bottom: 1rem;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .spinner {
-            border: 3px solid #0f3460;
-            border-top: 3px solid #e94560;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .api-section {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 1px solid #0f3460;
-        }
-
-        .api-toggle {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .api-toggle button {
-            background: transparent;
-            border: 2px solid #0f3460;
-        }
-
-        .api-toggle button.active {
-            background: #e94560;
-            border-color: #e94560;
-        }
-
-        .code-block {
-            background: #0a0a1a;
-            padding: 1rem;
-            border-radius: 4px;
-            overflow-x: auto;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.85rem;
-            color: #a8d8a8;
         }
 
         footer {
             text-align: center;
             padding: 2rem;
             color: #666;
+            margin-top: 2rem;
         }
 
         footer a {
             color: #e94560;
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
     <header>
         <h1>🔍 WASM Parser Explorer</h1>
-        <p class="subtitle">Parse and explore WebAssembly modules in your browser</p>
+        <p class="subtitle">Parse and explore WebAssembly modules in your browser using Rust WASM</p>
     </header>
 
     <main>
+        <div class="controls">
+            <label class="verbose-toggle">
+                <input type="checkbox" id="verboseMode" />
+                <span>Verbose Mode (show debug output)</span>
+            </label>
+        </div>
+
         <div class="drop-zone" id="dropZone">
             <p>📁 Drag & drop a .wasm file here</p>
             <p>or</p>
-            <button onclick="document.getElementById('fileInput').click()">Select File</button>
+            <button onclick="document.getElementById('fileInput').click()">Select WASM File</button>
             <input type="file" id="fileInput" class="file-input" accept=".wasm" />
         </div>
 
-        <div id="error" class="error" style="display: none;"></div>
+        <div id="console" class="console hidden">
+            <div class="console-header">
+                <span>📋 Parser Console</span>
+                <button onclick="clearConsole()">Clear</button>
+            </div>
+            <div id="consoleOutput" class="console-output"></div>
+        </div>
 
-        <div id="loading" class="loading" style="display: none;">
+        <div id="error" class="error"></div>
+
+        <div id="loading" class="loading">
             <div class="spinner"></div>
             <p>Parsing WebAssembly module...</p>
         </div>
 
         <div id="results" class="results">
             <div class="stats-grid" id="statsGrid"></div>
-
-            <div class="section">
-                <div class="section-header" onclick="toggleSection('imports')">
-                    <span class="section-title">📥 Imports</span>
-                    <span class="section-count" id="importsCount">0</span>
-                </div>
-                <div class="section-content" id="importsContent"></div>
-            </div>
-
-            <div class="section">
-                <div class="section-header" onclick="toggleSection('exports')">
-                    <span class="section-title">📤 Exports</span>
-                    <span class="section-count" id="exportsCount">0</span>
-                </div>
-                <div class="section-content" id="exportsContent"></div>
-            </div>
-
-            <div class="section">
-                <div class="section-header" onclick="toggleSection('functions')">
-                    <span class="section-title">⚙️ Functions</span>
-                    <span class="section-count" id="functionsCount">0</span>
-                </div>
-                <div class="section-content" id="functionsContent"></div>
-            </div>
-
-            <div class="section">
-                <div class="section-header" onclick="toggleSection('raw')">
-                    <span class="section-title">📝 Raw JSON</span>
-                </div>
-                <div class="section-content" id="rawContent"></div>
-            </div>
-        </div>
-
-        <div class="api-section">
-            <h2>🔗 API Endpoints</h2>
-            <div class="api-toggle">
-                <button class="active" onclick="showEndpoint('parse')">POST /parse</button>
-                <button onclick="showEndpoint('validate')">POST /validate</button>
-            </div>
-
-            <div id="endpoint-parse" class="endpoint-doc">
-                <h3>Parse WASM Module</h3>
-                <p>Upload a WebAssembly binary and get detailed module information.</p>
-                <div class="code-block">
-POST /parse
-Content-Type: application/octet-stream
-
-[binary wasm data]
-
-Response:
-{
-  "success": true,
-  "data": {
-    "info": { "functions": 10, "imports": 2, ... },
-    "imports": [...],
-    "exports": [...],
-    "functions": [...]
-  }
-}</div>
-            </div>
-
-            <div id="endpoint-validate" class="endpoint-doc" style="display: none;">
-                <h3>Validate WASM Module</h3>
-                <p>Check if a WebAssembly binary is valid.</p>
-                <div class="code-block">
-POST /validate
-Content-Type: application/octet-stream
-
-[binary wasm data]
-
-Response:
-{
-  "success": true,
-  "data": true
-}</div>
-            </div>
+            
+            <h2 class="section-title">📦 Module Structure</h2>
+            <div class="tree-view" id="treeView"></div>
         </div>
     </main>
 
     <footer>
-        <p>Powered by <a href="https://github.com/marc-openclaw/wasm-r3-2">wasm-r3-2</a> • Built with Rust 🦀</p>
+        <p>Powered by <a href="https://github.com/marc-openclaw/wasm-r3-2">wasm-r3-2</a> • Built with Rust 🦀 & WebAssembly</p>
     </footer>
 
-    <script>
+    <script type="module">
+        import init, { WasmModule } from './wasm_parser.js';
+
+        // Initialize WASM
+        let wasmInitialized = false;
+        
+        async function initWasm() {
+            if (!wasmInitialized) {
+                await init();
+                wasmInitialized = true;
+            }
+        }
+
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const errorDiv = document.getElementById('error');
         const loadingDiv = document.getElementById('loading');
         const resultsDiv = document.getElementById('results');
+        const consoleDiv = document.getElementById('console');
+        const consoleOutput = document.getElementById('consoleOutput');
+        const verboseCheckbox = document.getElementById('verboseMode');
+
+        let consoleLines = [];
+        let verboseEnabled = false;
+
+        // Intercept browser console to capture WASM logs
+        const originalConsole = {
+            log: console.log,
+            warn: console.warn,
+            error: console.error
+        };
+
+        function interceptConsole() {
+            console.log = function(...args) {
+                originalConsole.log.apply(console, args);
+                const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                if (msg.includes('[WASM]') || msg.includes('[WASM:DEBUG]')) {
+                    const level = msg.includes('[WASM:DEBUG]') ? 'debug' : 'info';
+                    logToConsole(msg, level);
+                }
+            };
+            
+            console.warn = function(...args) {
+                originalConsole.warn.apply(console, args);
+                const msg = args.map(a => String(a)).join(' ');
+                if (msg.includes('[WASM]')) {
+                    logToConsole(msg, 'warn');
+                }
+            };
+            
+            console.error = function(...args) {
+                originalConsole.error.apply(console, args);
+                const msg = args.map(a => String(a)).join(' ');
+                if (msg.includes('[WASM]')) {
+                    logToConsole(msg, 'error');
+                }
+            };
+        }
+
+        // Enable console interception
+        interceptConsole();
+
+        function logToConsole(message, level = 'info') {
+            const consoleDiv = document.getElementById('console');
+            const consoleOutput = document.getElementById('consoleOutput');
+            
+            if (!consoleDiv || !consoleOutput) return;
+            
+            if (!verboseEnabled && level === 'debug') {
+                return;
+            }
+            
+            consoleDiv.classList.remove('hidden');
+            
+            const line = document.createElement('div');
+            line.className = `console-line ${level}`;
+            // Remove [WASM] prefix for cleaner display
+            const cleanMsg = message.replace(/\[WASM(:DEBUG)?\]\s*/, '');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${cleanMsg}`;
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            
+            consoleLines.push({ message: cleanMsg, level, time: new Date() });
+        }
+
+        function clearConsole() {
+            const consoleOutput = document.getElementById('consoleOutput');
+            const consoleDiv = document.getElementById('console');
+            if (consoleOutput) {
+                consoleOutput.innerHTML = '';
+            }
+            consoleLines = [];
+            // Don't hide the console, just clear it
+            if (consoleDiv) {
+                consoleDiv.classList.remove('hidden');
+            }
+            // Log that console was cleared
+            logToConsole('Console cleared', 'info');
+        }
+
+        // Enable verbose mode checkbox
+        verboseCheckbox.addEventListener('change', (e) => {
+            verboseEnabled = e.target.checked;
+            logToConsole(`Verbose mode ${verboseEnabled ? 'enabled' : 'disabled'}`, 'info');
+        });
+
+        // Initialize WASM on page load
+        initWasm().catch(console.error);
 
         // Drag and drop
         dropZone.addEventListener('dragover', (e) => {
@@ -411,116 +567,163 @@ Response:
             }
 
             hideError();
-            loadingDiv.style.display = 'block';
+            loadingDiv.classList.add('active');
             resultsDiv.classList.remove('active');
 
             try {
+                await initWasm();
+                
                 const arrayBuffer = await file.arrayBuffer();
                 const bytes = new Uint8Array(arrayBuffer);
-
-                // Try to use the REST API first
-                const response = await fetch('http://localhost:3000/parse', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/octet-stream' },
-                    body: bytes
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        displayResults(result.data);
-                    } else {
-                        showError(result.error || 'Failed to parse WASM');
-                    }
-                } else {
-                    showError(`API Error: ${response.status}`);
-                }
+                
+                // Parse using WASM
+                const wasmModule = WasmModule.parse(bytes);
+                
+                // Get stats
+                const stats = {
+                    functions: wasmModule.function_count,
+                    types: wasmModule.type_count,
+                    imports: wasmModule.import_count,
+                    exports: wasmModule.export_count,
+                    memories: wasmModule.memory_count,
+                    tables: wasmModule.table_count,
+                    globals: wasmModule.global_count,
+                    data: wasmModule.data_count,
+                    elements: wasmModule.element_count
+                };
+                
+                // Get JSON representation
+                const jsonStr = wasmModule.to_json();
+                const moduleData = JSON.parse(jsonStr);
+                
+                displayResults(stats, moduleData);
             } catch (err) {
-                showError(`Error: ${err.message}. Make sure the API server is running on localhost:3000`);
+                showError(`Error: ${err.message}`);
+                console.error(err);
             } finally {
-                loadingDiv.style.display = 'none';
+                loadingDiv.classList.remove('active');
             }
         }
 
-        function displayResults(data) {
+        function displayResults(stats, data) {
             resultsDiv.classList.add('active');
 
-            // Stats
+            // Display stats
             const statsGrid = document.getElementById('statsGrid');
-            const info = data.info;
             statsGrid.innerHTML = `
-                <div class="stat-card"><div class="stat-value">${info.functions}</div><div class="stat-label">Functions</div></div>
-                <div class="stat-card"><div class="stat-value">${info.types}</div><div class="stat-label">Types</div></div>
-                <div class="stat-card"><div class="stat-value">${info.imports}</div><div class="stat-label">Imports</div></div>
-                <div class="stat-card"><div class="stat-value">${info.exports}</div><div class="stat-label">Exports</div></div>
-                <div class="stat-card"><div class="stat-value">${info.memories}</div><div class="stat-label">Memories</div></div>
-                <div class="stat-card"><div class="stat-value">${info.tables}</div><div class="stat-label">Tables</div></div>
-                <div class="stat-card"><div class="stat-value">${info.globals}</div><div class="stat-label">Globals</div></div>
-                <div class="stat-card"><div class="stat-value">${info.data_segments}</div><div class="stat-label">Data Segments</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.functions}</div><div class="stat-label">Functions</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.types}</div><div class="stat-label">Types</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.imports}</div><div class="stat-label">Imports</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.exports}</div><div class="stat-label">Exports</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.memories}</div><div class="stat-label">Memories</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.tables}</div><div class="stat-label">Tables</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.globals}</div><div class="stat-label">Globals</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.data}</div><div class="stat-label">Data Segments</div></div>
             `;
 
-            // Imports
-            document.getElementById('importsCount').textContent = data.imports.length;
-            document.getElementById('importsContent').innerHTML = data.imports.map((imp, i) => `
-                <div class="item">
-                    <div class="item-header">
-                        <span class="item-name">${imp.module}.${imp.name}</span>
-                        <span class="item-type">${imp.kind}</span>
-                    </div>
-                    <div class="item-details">Import #${i}</div>
-                </div>
-            `).join('') || '<div class="item">No imports</div>';
-
-            // Exports
-            document.getElementById('exportsCount').textContent = data.exports.length;
-            document.getElementById('exportsContent').innerHTML = data.exports.map((exp, i) => `
-                <div class="item">
-                    <div class="item-header">
-                        <span class="item-name">${exp.name}</span>
-                        <span class="item-type">${exp.kind}</span>
-                    </div>
-                    <div class="item-details">Index: ${exp.index}</div>
-                </div>
-            `).join('') || '<div class="item">No exports</div>';
-
-            // Functions
-            document.getElementById('functionsCount').textContent = data.functions.length;
-            document.getElementById('functionsContent').innerHTML = data.functions.map(func => `
-                <div class="item">
-                    <div class="item-header">
-                        <span class="item-name">Function ${func.index}</span>
-                        <span class="item-type">Type ${func.type_index}</span>
-                    </div>
-                    <div class="item-details">
-                        Params: [${func.params.join(', ')}] → Results: [${func.results.join(', ')}]<br>
-                        Locals: ${func.locals} | Instructions: ${func.instructions}
-                    </div>
-                </div>
-            `).join('') || '<div class="item">No functions</div>';
-
-            // Raw JSON
-            document.getElementById('rawContent').innerHTML = `<div class="code-block">${JSON.stringify(data, null, 2)}</div>`;
+            // Display tree view
+            const treeView = document.getElementById('treeView');
+            treeView.innerHTML = '';
+            treeView.appendChild(renderTree('module', data));
         }
 
-        function toggleSection(id) {
-            const content = document.getElementById(id + 'Content');
-            content.classList.toggle('active');
-        }
-
-        function showEndpoint(name) {
-            document.querySelectorAll('.endpoint-doc').forEach(el => el.style.display = 'none');
-            document.getElementById('endpoint-' + name).style.display = 'block';
-            document.querySelectorAll('.api-toggle button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+        function renderTree(key, value, level = 0) {
+            const node = document.createElement('div');
+            node.className = 'tree-node';
+            
+            const header = document.createElement('div');
+            header.className = 'tree-header';
+            
+            const toggle = document.createElement('span');
+            toggle.className = 'tree-toggle';
+            
+            const keySpan = document.createElement('span');
+            keySpan.className = 'tree-key';
+            keySpan.textContent = key;
+            
+            header.appendChild(toggle);
+            header.appendChild(keySpan);
+            
+            if (value === null) {
+                toggle.className += ' leaf';
+                const valSpan = document.createElement('span');
+                valSpan.className = 'tree-value null';
+                valSpan.textContent = 'null';
+                header.appendChild(valSpan);
+                node.appendChild(header);
+            } else if (typeof value === 'object') {
+                if (Array.isArray(value)) {
+                    const typeSpan = document.createElement('span');
+                    typeSpan.className = 'tree-type';
+                    typeSpan.textContent = `array[${value.length}]`;
+                    header.appendChild(typeSpan);
+                    
+                    toggle.className += value.length > 0 ? ' expanded' : ' leaf';
+                    node.appendChild(header);
+                    
+                    if (value.length > 0) {
+                        const children = document.createElement('div');
+                        children.className = 'tree-children';
+                        value.forEach((item, i) => {
+                            children.appendChild(renderTree(`[${i}]`, item, level + 1));
+                        });
+                        node.appendChild(children);
+                        
+                        header.addEventListener('click', () => {
+                            children.classList.toggle('collapsed');
+                            toggle.classList.toggle('expanded');
+                            toggle.classList.toggle('collapsed');
+                        });
+                    }
+                } else {
+                    const keys = Object.keys(value);
+                    const typeSpan = document.createElement('span');
+                    typeSpan.className = 'tree-type';
+                    typeSpan.textContent = `object{${keys.length}}`;
+                    header.appendChild(typeSpan);
+                    
+                    toggle.className += keys.length > 0 ? ' expanded' : ' leaf';
+                    node.appendChild(header);
+                    
+                    if (keys.length > 0) {
+                        const children = document.createElement('div');
+                        children.className = 'tree-children';
+                        keys.forEach(k => {
+                            children.appendChild(renderTree(k, value[k], level + 1));
+                        });
+                        node.appendChild(children);
+                        
+                        header.addEventListener('click', () => {
+                            children.classList.toggle('collapsed');
+                            toggle.classList.toggle('expanded');
+                            toggle.classList.toggle('collapsed');
+                        });
+                    }
+                }
+            } else {
+                toggle.className += ' leaf';
+                const valSpan = document.createElement('span');
+                valSpan.className = 'tree-value';
+                if (typeof value === 'number') {
+                    valSpan.className += ' number';
+                } else if (typeof value === 'boolean') {
+                    valSpan.className += ' boolean';
+                }
+                valSpan.textContent = String(value);
+                header.appendChild(valSpan);
+                node.appendChild(header);
+            }
+            
+            return node;
         }
 
         function showError(msg) {
             errorDiv.textContent = msg;
-            errorDiv.style.display = 'block';
+            errorDiv.classList.add('active');
         }
 
         function hideError() {
-            errorDiv.style.display = 'none';
+            errorDiv.classList.remove('active');
         }
     </script>
 </body>
