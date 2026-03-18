@@ -588,8 +588,7 @@
                     memories: wasmModule.memory_count,
                     tables: wasmModule.table_count,
                     globals: wasmModule.global_count,
-                    data: wasmModule.data_count,
-                    elements: wasmModule.element_count
+                    data: wasmModule.data_count
                 };
                 
                 // Get JSON representation
@@ -627,23 +626,167 @@
             treeView.appendChild(renderTree('module', data));
         }
 
-        function renderTree(key, value, level = 0) {
+        // Helper function to convert PascalCase instruction names to lowercase with dots
+        function formatInstructionName(name) {
+            // Handle special cases first
+            const specialCases = {
+                'I32': 'i32.',
+                'I64': 'i64.',
+                'F32': 'f32.',
+                'F64': 'f64.',
+                'LocalGet': 'local.get',
+                'LocalSet': 'local.set',
+                'LocalTee': 'local.tee',
+                'GlobalGet': 'global.get',
+                'GlobalSet': 'global.set',
+                'MemorySize': 'memory.size',
+                'MemoryGrow': 'memory.grow',
+                'MemoryCopy': 'memory.copy',
+                'MemoryFill': 'memory.fill',
+                'MemoryInit': 'memory.init',
+                'DataDrop': 'data.drop',
+                'ElemDrop': 'elem.drop',
+                'TableGet': 'table.get',
+                'TableSet': 'table.set',
+                'TableGrow': 'table.grow',
+                'TableSize': 'table.size',
+                'TableFill': 'table.fill',
+                'TableCopy': 'table.copy',
+                'TableInit': 'table.init',
+                'RefNull': 'ref.null',
+                'RefIsNull': 'ref.is_null',
+                'RefFunc': 'ref.func',
+                'Select': 'select',
+                'Drop': 'drop',
+                'Return': 'return',
+                'Unreachable': 'unreachable',
+                'Nop': 'nop',
+                'Block': 'block',
+                'Loop': 'loop',
+                'If': 'if',
+                'Else': 'else',
+                'End': 'end',
+                'Br': 'br',
+                'BrIf': 'br_if',
+                'BrTable': 'br_table',
+                'Call': 'call',
+                'CallIndirect': 'call_indirect',
+                'ReturnCall': 'return_call',
+                'ReturnCallIndirect': 'return_call_indirect'
+            };
+
+            // Check for exact match first
+            if (specialCases[name]) {
+                return specialCases[name];
+            }
+
+            // Handle numeric type prefixes (I32, I64, F32, F64)
+            let result = name;
+            if (name.startsWith('I32')) {
+                result = 'i32.' + name.slice(3);
+            } else if (name.startsWith('I64')) {
+                result = 'i64.' + name.slice(3);
+            } else if (name.startsWith('F32')) {
+                result = 'f32.' + name.slice(3);
+            } else if (name.startsWith('F64')) {
+                result = 'f64.' + name.slice(3);
+            }
+
+            // Convert camelCase to snake_case with dots
+            return result.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+        }
+
+        // Helper function to render a WASM instruction as a readable string
+        function renderInstruction(instr) {
+            if (instr === null || typeof instr !== 'object') {
+                return String(instr);
+            }
+
+            const keys = Object.keys(instr);
+            if (keys.length === 0) {
+                return '{}';
+            }
+
+            const instrName = keys[0];
+            const instrData = instr[instrName];
+            const formattedName = formatInstructionName(instrName);
+
+            // Handle different instruction types
+            if (instrData === null) {
+                // Unit variant (no parameters)
+                return formattedName;
+            } else if (typeof instrData === 'object') {
+                // Struct variant with parameters
+                const params = [];
+                for (const [key, val] of Object.entries(instrData)) {
+                    // Format parameter names: local_idx -> just the value
+                    if (key === 'local_idx') {
+                        params.push(val);
+                    } else if (key === 'global_idx') {
+                        params.push(val);
+                    } else if (key === 'func_idx') {
+                        params.push(val);
+                    } else if (key === 'type_idx') {
+                        params.push(val);
+                    } else if (key === 'label_idx') {
+                        params.push(val);
+                    } else if (key === 'table_idx') {
+                        params.push(val);
+                    } else if (key === 'mem_idx') {
+                        params.push(val);
+                    } else if (key === 'data_idx') {
+                        params.push(val);
+                    } else if (key === 'elem_idx') {
+                        params.push(val);
+                    } else if (key === 'value') {
+                        // For const instructions, just show the value
+                        params.push(val);
+                    } else if (key === 'align') {
+                        params.push(`align=${val}`);
+                    } else if (key === 'offset') {
+                        params.push(`offset=${val}`);
+                    } else {
+                        params.push(`${key}=${val}`);
+                    }
+                }
+                return params.length > 0 ? `${formattedName} ${params.join(' ')}` : formattedName;
+            }
+
+            return formattedName;
+        }
+
+        // Check if a value is a WASM instruction object
+        function isInstructionObject(value) {
+            if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+                return false;
+            }
+            const keys = Object.keys(value);
+            if (keys.length !== 1) {
+                return false;
+            }
+            const key = keys[0];
+            // Common WASM instruction prefixes
+            const instrPrefixes = ['I32', 'I64', 'F32', 'F64', 'Local', 'Global', 'Memory', 'Ref', 'Br', 'Call', 'Return', 'Select', 'Drop', 'Nop', 'End', 'If', 'Else', 'Block', 'Loop', 'Unreachable', 'Table', 'Data', 'Elem'];
+            return instrPrefixes.some(prefix => key.startsWith(prefix));
+        }
+
+        function renderTree(key, value, level = 0, parentKey = '') {
             const node = document.createElement('div');
             node.className = 'tree-node';
-            
+
             const header = document.createElement('div');
             header.className = 'tree-header';
-            
+
             const toggle = document.createElement('span');
             toggle.className = 'tree-toggle';
-            
+
             const keySpan = document.createElement('span');
             keySpan.className = 'tree-key';
             keySpan.textContent = key;
-            
+
             header.appendChild(toggle);
             header.appendChild(keySpan);
-            
+
             if (value === null) {
                 toggle.className += ' leaf';
                 const valSpan = document.createElement('span');
@@ -653,41 +796,96 @@
                 node.appendChild(header);
             } else if (typeof value === 'object') {
                 if (Array.isArray(value)) {
-                    const typeSpan = document.createElement('span');
-                    typeSpan.className = 'tree-type';
-                    typeSpan.textContent = `array[${value.length}]`;
-                    header.appendChild(typeSpan);
-                    
-                    toggle.className += value.length > 0 ? ' expanded' : ' leaf';
-                    node.appendChild(header);
-                    
-                    if (value.length > 0) {
+                    // Check if this is an instructions array
+                    const isInstructions = key === 'instructions' || parentKey === 'instructions';
+
+                    if (isInstructions && value.length > 0 && isInstructionObject(value[0])) {
+                        // Render instructions array as a list of formatted instructions
+                        toggle.className += ' collapsed';
+                        const typeSpan = document.createElement('span');
+                        typeSpan.className = 'tree-type';
+                        typeSpan.textContent = `array[${value.length}]`;
+                        header.appendChild(typeSpan);
+                        node.appendChild(header);
+
                         const children = document.createElement('div');
-                        children.className = 'tree-children';
+                        children.className = 'tree-children collapsed';
                         value.forEach((item, i) => {
-                            children.appendChild(renderTree(`[${i}]`, item, level + 1));
+                            const instrNode = document.createElement('div');
+                            instrNode.className = 'tree-node';
+                            const instrHeader = document.createElement('div');
+                            instrHeader.className = 'tree-header';
+                            const instrToggle = document.createElement('span');
+                            instrToggle.className = 'tree-toggle leaf';
+                            const instrKeySpan = document.createElement('span');
+                            instrKeySpan.className = 'tree-key';
+                            instrKeySpan.textContent = `[${i}]`;
+                            const instrValSpan = document.createElement('span');
+                            instrValSpan.className = 'tree-value';
+                            instrValSpan.style.fontFamily = 'monospace';
+                            instrValSpan.style.color = '#4fc1ff';
+                            instrValSpan.textContent = renderInstruction(item);
+                            instrHeader.appendChild(instrToggle);
+                            instrHeader.appendChild(instrKeySpan);
+                            instrHeader.appendChild(instrValSpan);
+                            instrNode.appendChild(instrHeader);
+                            children.appendChild(instrNode);
                         });
                         node.appendChild(children);
-                        
+
                         header.addEventListener('click', () => {
                             children.classList.toggle('collapsed');
                             toggle.classList.toggle('expanded');
                             toggle.classList.toggle('collapsed');
                         });
+                    } else {
+                        const typeSpan = document.createElement('span');
+                        typeSpan.className = 'tree-type';
+                        typeSpan.textContent = `array[${value.length}]`;
+                        header.appendChild(typeSpan);
+
+                        toggle.className += value.length > 0 ? ' collapsed' : ' leaf';
+                        node.appendChild(header);
+
+                        if (value.length > 0) {
+                            const children = document.createElement('div');
+                            children.className = 'tree-children collapsed';
+                            value.forEach((item, i) => {
+                                children.appendChild(renderTree(`[${i}]`, item, level + 1, key));
+                            });
+                            node.appendChild(children);
+
+                            header.addEventListener('click', () => {
+                                children.classList.toggle('collapsed');
+                                toggle.classList.toggle('expanded');
+                                toggle.classList.toggle('collapsed');
+                            });
+                        }
                     }
                 } else {
-                    const keys = Object.keys(value);
-                    const typeSpan = document.createElement('span');
+                    // Check if this is a single instruction object (not in an array)
+                    if (isInstructionObject(value)) {
+                        toggle.className += ' leaf';
+                        const valSpan = document.createElement('span');
+                        valSpan.className = 'tree-value';
+                        valSpan.style.fontFamily = 'monospace';
+                        valSpan.style.color = '#4fc1ff';
+                        valSpan.textContent = renderInstruction(value);
+                        header.appendChild(valSpan);
+                        node.appendChild(header);
+                    } else {
+                        const keys = Object.keys(value);
+                        const typeSpan = document.createElement('span');
                     typeSpan.className = 'tree-type';
                     typeSpan.textContent = `object{${keys.length}}`;
                     header.appendChild(typeSpan);
                     
-                    toggle.className += keys.length > 0 ? ' expanded' : ' leaf';
+                    toggle.className += keys.length > 0 ? ' collapsed' : ' leaf';
                     node.appendChild(header);
                     
                     if (keys.length > 0) {
                         const children = document.createElement('div');
-                        children.className = 'tree-children';
+                        children.className = 'tree-children collapsed';
                         keys.forEach(k => {
                             children.appendChild(renderTree(k, value[k], level + 1));
                         });
